@@ -1,6 +1,4 @@
-# Projet Panacée (C)
-
-Initialisation minimale d’un projet en C avec un entrypoint et un Makefile simple.
+# Projet Panacée
 
 ## Commandes utiles
 
