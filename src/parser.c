@@ -3,41 +3,61 @@
 #include <string.h>
 #include "datas/town.h"
 
-void parse(Town *towns)
-{
+#define INSEE_COL 0
+#define INHABITANTS_COL 7
+#define LATITUDE_COL 8
+#define LONGITUDE_COL 9
 
+int count_lines(FILE *fptr)
+{
+    int lines = 0;
+    char buffer[1024];
+    while (fgets(buffer, 1024, fptr))
+        lines++;
+    rewind(fptr);
+    return lines;
+}
+
+Town *parse()
+{
     FILE *fptr = fopen("./src/assets/communes-france-metrople-2025.csv", "r");
     if (!fptr)
+    {
         printf("Can't open file\n");
+        return NULL;
+    }
+
+    int total = count_lines(fptr);
+    Town *towns = malloc(total * sizeof(Town));
+    if (!towns)
+    {
+        fclose(fptr);
+        return NULL;
+    }
 
     char buffer[1024];
-
-    int column = 0;
-
     int i = 0;
-
     while (fgets(buffer, 1024, fptr))
     {
-        column = 0;
+        int column = 0;
         char *value = strtok(buffer, ",");
-        Town town;
+        Town town = {0};
         while (value)
         {
-            if (column == 0)
+            if (column == INSEE_COL)
                 town.insee = atoi(value);
-
-            if (column == 7)
+            if (column == INHABITANTS_COL)
                 town.inhabitants_count = atoi(value);
-
-            if (column == 8)
+            if (column == LATITUDE_COL)
                 town.latitude = atof(value);
-
-            if (column == 9)
+            if (column == LONGITUDE_COL)
                 town.longitude = atof(value);
             value = strtok(NULL, ",");
             column++;
         }
-        towns[i] = town;
-        i++;
+        towns[i++] = town;
     }
+
+    fclose(fptr);
+    return towns;
 }
