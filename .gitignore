@@ -9,8 +9,8 @@
 *.dylib
 
 
-build/*
-!build/.gitkeep
+apps/panacee-genetics/bin/*
+!apps/panacee-genetics/bin/.gitkeep
 
 *.d
 *.i
@@ -40,3 +40,5 @@ tmp/
 
 
 panacee
+
+dist
