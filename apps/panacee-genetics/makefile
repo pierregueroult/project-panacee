@@ -1,16 +1,20 @@
 CC = cc
-CFLAGS = -Wall -ansi
+CFLAGS = -Wall -ansi -g
+LDFLAGS = -lMLV
 NAME = panacee
 
-SRC = $(shell find src -type f -name "*.c")
-OBJ = $(patsubst src/%.c,bin/%.o,$(SRC))
+SRC_DIR = src
+OBJ_DIR = bin
+
+SRC = $(shell find $(SRC_DIR) -type f -name "*.c")
+OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CC) $(OBJ) -o $(NAME)
+	$(CC) $(OBJ) -o $(NAME) $(LDFLAGS)
 
-bin/%.o: src/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -18,7 +22,7 @@ run: $(NAME)
 	./$(NAME)
 
 clean:
-	find bin -mindepth 1 ! -name ".gitkeep" -delete
+	find $(OBJ_DIR) -mindepth 1 ! -name ".gitkeep" -delete
 
 fclean: clean
 	rm -f $(NAME)
