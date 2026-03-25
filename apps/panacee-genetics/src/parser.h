@@ -1,3 +1,3 @@
 #include "datas/town.h"
 
-Town *parse();
+Town *parse(int *count);

@@ -1,3 +1,6 @@
+#ifndef TOWN_H
+#define TOWN_H
+
 #define TOWN_COUNT 34437
 
 typedef struct
@@ -7,3 +10,5 @@ typedef struct
     double longitude;
     int inhabitants_count;
 } Town;
+
+#endif
