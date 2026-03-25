@@ -1,25 +1,33 @@
-# Makefile notes 
+# Makefile notes
 
-## 1 Base
+## 1) Overview
 
-- one executable : `panacee`
-- sources are in `src/`
-- object files are in `build/`
+This project uses **two Makefiles**:
 
-## 2 Variables
+- `makefile` (project root): global orchestration for Python + C
+- `apps/panacee-genetics/makefile`: C genetic engine build
 
-- `CC = cc`: compiler
-- `CFLAGS = -Wall -ansi`: best flags for real
-- `NAME = panacee`: output program name
-- `SRC = $(shell find src -type f -name "*.c")`: this finds all `.c` files in `src/` and subfolders
-- `OBJ = $(patsubst src/%.c,build/%.o,$(SRC))`: converts source paths to object paths; example: `src/somefoler/somefile.c` -> `build/somefoler/somefile.o`; see: [patsubt doc](https://www.gnu.org/software/make/manual/html_node/Text-Functions.html)
+## 2) Root Makefile (`/makefile`)
 
-## 3) Targets
+- `all`: runs `init build run`
+- `help`: prints available targets
+- `init`: installs Python dependencies from `apps/panacee-documents/requirement.txt`
+- `build`: runs `make -C apps/panacee-genetics all`
+- `run`: depends on `build`, then:
+  1. runs the C binary `./panacee` inside `apps/panacee-genetics`
+  2. runs the Python app `apps/panacee-documents/main.py`
+- `clean`: cleans C build artifacts through the genetics makefile (`clean`)
+- `fclean`: runs `clean`, then performs full cleanup 
+- `re`: runs `fclean` then `build`
 
-- `all`: default target, builds the program
-- `$(NAME)`: links all `.o` files to create `panacee`
-- `build/%.o: src/%.c`: generic rule to compile any source file into `build/` we also create the folder before compiling: `mkdir -p $(dir $@)`
+## 3) Genetics Makefile (`apps/panacee-genetics/makefile`)
+
+- `all`: builds `$(NAME)`
+- `$(NAME)`: links all object files `$(OBJ)` into `panacee`
+- `bin/%.o: src/%.c`: generic compile rule
+  - creates output directory with `mkdir -p $(dir $@)`
+  - compiles with `$(CC) $(CFLAGS) -c $< -o $@`
 - `run`: runs `./panacee`
-- `clean`: removes files in `build/` but keeps `.gitkeep`
-- `fclean`: does `clean` + removes the executable
-- `re`: full rebuild (`fclean` then `all`)
+- `clean`: removes `bin/` contents while keeping `.gitkeep`
+- `fclean`: runs `clean` then removes `panacee`
+- `re`: runs `fclean` then `all`
