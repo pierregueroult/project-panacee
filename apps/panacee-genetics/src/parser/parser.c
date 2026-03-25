@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "datas/town.h"
+#include "../datas/town.h"
 
 #define INSEE_COL 0
 #define INHABITANTS_COL 7
@@ -18,12 +18,12 @@ int count_lines(FILE *fptr)
     return lines;
 }
 
-Town *parse()
+Town *parse(int *count)
 {
-    FILE *fptr = fopen("./src/assets/communes-france-metrople-2025.csv", "r");
+    FILE *fptr = fopen("../../data/communes-france-metrople-2025.csv", "r");
     if (!fptr)
     {
-        printf("Can't open file\n");
+        perror("fopen");
         return NULL;
     }
 
@@ -59,5 +59,6 @@ Town *parse()
     }
 
     fclose(fptr);
+    *count = i;
     return towns;
 }
