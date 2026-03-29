@@ -1,8 +1,8 @@
 #include "fitness.h"
-
+#include "hospital.h"
 typedef struct
 {
-    int *town_indexes;
+    Hospital *hospitals;
     int size;
     Fitness fitness;
 } Individual;
