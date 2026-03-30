@@ -14,4 +14,7 @@ typedef struct
     double fitness_average;
 } Fitness;
 
+double calculate_fitness_score(int total_inhabitants, int distant_residents, int hospitals_count, int uhc_count);
+void export_fitness_csv(const Fitness *fitness, const char *path);
+
 #endif

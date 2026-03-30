@@ -4,6 +4,7 @@
 #include "datas/individual.h"
 #include "datas/town.h"
 #include "datas/population.h"
+#include "datas/fitness.h"
 
 #define EARTH_RADIUS_KM 6371.0
 #define RADIUS_HOSPITAL_KM 10.0  /* coverage radius of a hospital (km)          */
