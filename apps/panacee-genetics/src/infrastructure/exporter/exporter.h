@@ -1,0 +1,11 @@
+#ifndef EXPORTER_H
+#define EXPORTER_H
+
+#include "../../domain/fitness/fitness.h"
+#include "../../domain/individual/individual.h"
+#include "../../domain/town/town.h"
+
+void export_fitness_csv(const Fitness *fitness, const char *path);
+void export_result_csv(const Individual *result, Town *towns, const int *insee_to_idx, const char *path);
+
+#endif

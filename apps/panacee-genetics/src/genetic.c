@@ -1,4 +1,5 @@
 #include "genetic.h"
+#include "infrastructure/exporter/exporter.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

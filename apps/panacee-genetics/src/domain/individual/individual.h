@@ -20,6 +20,5 @@ void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
 void mutate(Individual *ind, Town *towns, int town_count, double mutation_rate, int **coverage, const int *coverage_size, const int *insee_to_idx);
 void compute_beds(Individual *ind, Town *towns, int town_count, const int *insee_to_idx, int **coverage, const int *coverage_size);
 void evaluate(Individual *ind, Town *towns, int town_count, const int *insee_to_idx, int **coverage, const int *coverage_size, int total_inhabitants);
-void export_result_csv(const Individual *result, Town *towns, const int *insee_to_idx, const char *path);
 
 #endif
