@@ -1,3 +1,6 @@
+#ifndef FITNESS_H
+#define FITNESS_H
+
 typedef struct
 {
     int hospital_count;
@@ -10,3 +13,5 @@ typedef struct
     int fitness_count;
     double fitness_average;
 } Fitness;
+
+#endif

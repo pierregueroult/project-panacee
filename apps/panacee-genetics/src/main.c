@@ -1,10 +1,10 @@
 #include <stdio.h>
 
 #include <MLV/MLV_all.h>
-#include "color/color.h"
+#include "presentation/color/color.h"
 
-#include "parser/parser.h"
-#include "map/map.h"
+#include "infrastructure/parser/parser.h"
+#include "presentation/map/map.h"
 
 int main(void)
 {

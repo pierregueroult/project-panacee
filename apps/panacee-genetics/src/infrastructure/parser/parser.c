@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../datas/town.h"
+#include "../../domain/town/town.h"
 
 #define INSEE_COL 0
 #define INHABITANTS_COL 7
