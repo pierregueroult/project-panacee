@@ -1,9 +1,11 @@
 #include <stdio.h>
 
+#ifdef USE_MLV
 #include <MLV/MLV_all.h>
+#endif
+
 #include "genetic.h"
 #include "presentation/color/color.h"
-
 #include "infrastructure/parser/parser.h"
 #include "presentation/map/map.h"
 

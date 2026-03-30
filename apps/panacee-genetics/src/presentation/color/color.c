@@ -1,5 +1,6 @@
 #include "color.h"
 
+#ifdef USE_MLV
 MLV_Color PANACEE_COLOR_ORANGE;
 MLV_Color PANACEE_COLOR_GREEN;
 
@@ -9,3 +10,4 @@ void color_init(void) {
 	/*#80BA27*/
 	PANACEE_COLOR_GREEN = MLV_rgba(128, 186, 39, 255);
 }
+#endif
