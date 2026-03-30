@@ -1,7 +1,7 @@
 #ifndef POPULATION_H
 #define POPULATION_H
 
-#include "individual.h"
+#include "../individual/individual.h"
 
 typedef struct
 {

@@ -1,6 +1,6 @@
 CC = cc
 CFLAGS = -Wall -ansi -g
-LDFLAGS = -lMLV
+LDFLAGS = -lMLV -lm
 NAME = panacee
 
 SRC_DIR = src

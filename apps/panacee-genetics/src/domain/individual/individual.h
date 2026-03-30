@@ -1,9 +1,9 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H
 
-#include "fitness.h"
-#include "hospital.h"
-#include "town.h"
+#include "../fitness/fitness.h"
+#include "../hospital/hospital.h"
+#include "../town/town.h"
 
 typedef struct
 {

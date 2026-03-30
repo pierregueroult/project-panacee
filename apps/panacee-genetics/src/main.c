@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include <MLV/MLV_all.h>
+#include "genetic.h"
 #include "presentation/color/color.h"
 
 #include "infrastructure/parser/parser.h"
@@ -8,6 +9,7 @@
 
 int main(void)
 {
+    /*
     int count = 0;
     int i = 0;
     double ratio;
@@ -50,6 +52,13 @@ int main(void)
 
     MLV_wait_seconds(10);
     MLV_free_window();
+
+    return 0;
+     */
+
+    int i = 0;
+    Town *towns = parse(&i);
+    run_genetic(towns, i);
 
     return 0;
 }

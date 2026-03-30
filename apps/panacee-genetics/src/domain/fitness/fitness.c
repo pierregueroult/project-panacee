@@ -1,4 +1,4 @@
-#include "../genetic.h"
+#include "../../genetic.h"
 #include <stdlib.h>
 #include <stdio.h>
 

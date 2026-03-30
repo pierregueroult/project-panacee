@@ -58,8 +58,6 @@ Town *parse(int *count)
         towns[i++] = town;
     }
 
-    *count = i;
-
     fclose(fptr);
     *count = i;
     return towns;
