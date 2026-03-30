@@ -18,7 +18,7 @@ int count_lines(FILE *fptr)
     return lines;
 }
 
-Town *parse()
+Town *parse(int *count)
 {
     FILE *fptr = fopen("./src/assets/communes-france-metrople-2025.csv", "r");
     if (!fptr)
@@ -57,6 +57,8 @@ Town *parse()
         }
         towns[i++] = town;
     }
+
+    *count = i;
 
     fclose(fptr);
     return towns;
