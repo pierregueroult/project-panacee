@@ -1,3 +1,6 @@
+#ifndef GENETIC_H
+#define GENETIC_H
+
 #include "datas/individual.h"
 #include "datas/town.h"
 #include "datas/population.h"
@@ -16,3 +19,5 @@
 #define STAGNATION_LIMIT 500
 
 Individual run_genetic(Town *towns, int town_count);
+
+#endif
