@@ -50,5 +50,6 @@ int main(void)
 
     MLV_wait_seconds(10);
     MLV_free_window();
+
     return 0;
 }
