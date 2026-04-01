@@ -9,6 +9,27 @@
 #include <MLV/MLV_all.h>
 #include "presentation/color/color.h"
 #include "presentation/map/map.h"
+
+static void mlv_loading(Town *towns, int town_count,
+                         int padding, double min_lon, double min_lat,
+                         double ratio, int height, int sidebar_x,
+                         const char *msg)
+{
+    int j;
+    MLV_clear_window(MLV_COLOR_BLACK);
+    for (j = 0; j < town_count; j++)
+    {
+        MLV_draw_filled_circle(
+            padding + (int)((towns[j].longitude - min_lon) * ratio),
+            height - padding - (int)((towns[j].latitude - min_lat) * ratio),
+            1,
+            PANACEE_COLOR_ORANGE
+        );
+    }
+    MLV_draw_line(sidebar_x, 0, sidebar_x, height, MLV_COLOR_WHITE);
+    MLV_draw_text(sidebar_x + padding, height / 2, msg, MLV_COLOR_WHITE);
+    MLV_actualise_window();
+}
 #endif
 
 Individual run_genetic(Town *towns, int town_count)
@@ -50,11 +71,30 @@ Individual run_genetic(Town *towns, int town_count)
     for (i = 0; i < town_count; i++)
         insee_to_idx[towns[i].insee] = i;
 
+#ifdef USE_MLV
+    mlv_loading(towns, town_count, mlv_padding,
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                "Calcul de la couverture...");
+#endif
     precompute_coverage(towns, town_count, &coverage, &coverage_size);
 
     total_inhabitants = inhabitant_count(towns, town_count);
 
+#ifdef USE_MLV
+    mlv_loading(towns, town_count, mlv_padding,
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                "Initialisation de la population...");
+#endif
     pop = init_population(towns, town_count, coverage, coverage_size);
+
+#ifdef USE_MLV
+    mlv_loading(towns, town_count, mlv_padding,
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                "Evaluation de la generation initiale...");
+#endif
     evaluate_population(&pop, towns, town_count, insee_to_idx, coverage, coverage_size, total_inhabitants);
 
     for (gen = 0; gen < MAX_GENERATIONS; gen++)
@@ -98,7 +138,10 @@ Individual run_genetic(Town *towns, int town_count)
 #ifdef USE_MLV
         if (stagnation == 0 || gen % 100 == 0)
         {
-            int mlv_j, mlv_idx;
+            int mlv_j, mlv_idx, mlv_sx, mlv_tx, mlv_ty;
+            mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio);
+            mlv_tx = mlv_sx + mlv_padding;
+            mlv_ty = mlv_padding;
             MLV_clear_window(MLV_COLOR_BLACK);
             for (mlv_j = 0; mlv_j < town_count; mlv_j++)
             {
@@ -122,13 +165,22 @@ Individual run_genetic(Town *towns, int town_count)
                     );
                 }
             }
-            MLV_draw_line(
-                mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
-                0,
-                mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
-                mlv_height,
-                MLV_COLOR_WHITE
-            );
+            MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
+            MLV_draw_text(mlv_tx, mlv_ty, "Generation  : %d", MLV_COLOR_WHITE, gen);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Fitness     : %.0f", MLV_COLOR_WHITE, best_score);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux    : %d", MLV_COLOR_WHITE, current_best.fitness.hospital_count);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "CHRU        : %d", MLV_COLOR_WHITE, current_best.fitness.uhc_count);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Deserts     : %d (%.1f%%)", MLV_COLOR_WHITE,
+                          current_best.fitness.distant_resident_count,
+                          current_best.fitness.distant_resident_percent);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Stagnation  : %d / %d", MLV_COLOR_WHITE, stagnation, STAGNATION_LIMIT);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Mutation    : %.2f", MLV_COLOR_WHITE, current_mutation_rate);
             MLV_actualise_window();
         }
 #endif
