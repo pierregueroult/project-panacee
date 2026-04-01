@@ -157,11 +157,14 @@ Individual run_genetic(Town *towns, int town_count)
                 mlv_idx = insee_to_idx[current_best.hospitals[mlv_j].insee];
                 if (mlv_idx >= 0)
                 {
+                    MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > TRESHOLD_UHC
+                        ? PANACEE_COLOR_BLUE
+                        : PANACEE_COLOR_GREEN;
                     MLV_draw_filled_circle(
                         mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio),
                         mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
                         5,
-                        PANACEE_COLOR_GREEN
+                        mlv_color
                     );
                 }
             }
