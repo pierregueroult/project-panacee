@@ -174,3 +174,4 @@ def preview_one_department(department_code: str) -> None:
         ].head(20)
     )
     print("Nombre d'hôpitaux :", len(department_hospitals))
+
