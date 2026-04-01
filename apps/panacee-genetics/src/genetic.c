@@ -7,12 +7,17 @@
 
 #ifdef USE_MLV
 #include <MLV/MLV_all.h>
+#include <math.h>
 #include "presentation/color/color.h"
 #include "presentation/map/map.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 static void mlv_loading(Town *towns, int town_count,
                          int padding, double min_lon, double min_lat,
-                         double ratio, int height, int sidebar_x,
+                         double ratio, double cos_lat, int height, int sidebar_x,
                          const char *msg)
 {
     int j;
@@ -20,7 +25,7 @@ static void mlv_loading(Town *towns, int town_count,
     for (j = 0; j < town_count; j++)
     {
         MLV_draw_filled_circle(
-            padding + (int)((towns[j].longitude - min_lon) * ratio),
+            padding + (int)((towns[j].longitude - min_lon) * ratio * cos_lat),
             height - padding - (int)((towns[j].latitude - min_lat) * ratio),
             1,
             PANACEE_COLOR_ORANGE
@@ -47,7 +52,7 @@ Individual run_genetic(Town *towns, int town_count)
 #ifdef USE_MLV
     BoundingBox mlv_box;
     int mlv_height, mlv_sidebar_width, mlv_width, mlv_padding;
-    double mlv_ratio;
+    double mlv_ratio, mlv_cos_lat;
 #endif
 
     /* seed RNG with current time for different results each run */
@@ -59,8 +64,9 @@ Individual run_genetic(Town *towns, int town_count)
     mlv_height = (int)(MLV_get_desktop_height() * 0.8);
     mlv_sidebar_width = 300;
     mlv_padding = (int)(mlv_height * 0.05);
+    mlv_cos_lat = cos((mlv_box.min_lat + mlv_box.max_lat) / 2.0 * M_PI / 180.0);
     mlv_ratio = (mlv_height - 2 * mlv_padding) / (mlv_box.max_lat - mlv_box.min_lat);
-    mlv_width = (int)(mlv_ratio * (mlv_box.max_lon - mlv_box.min_lon)) + 2 * mlv_padding;
+    mlv_width = (int)(mlv_ratio * (mlv_box.max_lon - mlv_box.min_lon) * mlv_cos_lat) + 2 * mlv_padding;
     MLV_create_window("Panacée Genetics", "Panacée Genetics", mlv_width + mlv_sidebar_width, mlv_height);
 #endif
 
@@ -73,8 +79,8 @@ Individual run_genetic(Town *towns, int town_count)
 
 #ifdef USE_MLV
     mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
                 "Calcul de la couverture...");
 #endif
     precompute_coverage(towns, town_count, &coverage, &coverage_size);
@@ -83,16 +89,16 @@ Individual run_genetic(Town *towns, int town_count)
 
 #ifdef USE_MLV
     mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
                 "Initialisation de la population...");
 #endif
     pop = init_population(towns, town_count, coverage, coverage_size);
 
 #ifdef USE_MLV
     mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
+                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
                 "Evaluation de la generation initiale...");
 #endif
     evaluate_population(&pop, towns, town_count, insee_to_idx, coverage, coverage_size, total_inhabitants);
@@ -138,7 +144,7 @@ Individual run_genetic(Town *towns, int town_count)
 #ifdef USE_MLV
         {
             int mlv_j, mlv_idx, mlv_sx, mlv_tx, mlv_ty;
-            mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio);
+            mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat);
             mlv_tx = mlv_sx + mlv_padding;
             if (stagnation == 0)
             {
@@ -146,7 +152,7 @@ Individual run_genetic(Town *towns, int town_count)
                 for (mlv_j = 0; mlv_j < town_count; mlv_j++)
                 {
                     MLV_draw_filled_circle(
-                        mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio),
+                        mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
                         mlv_height - mlv_padding - (int)((towns[mlv_j].latitude - mlv_box.min_lat) * mlv_ratio),
                         1,
                         PANACEE_COLOR_ORANGE
@@ -161,7 +167,7 @@ Individual run_genetic(Town *towns, int town_count)
                             ? PANACEE_COLOR_BLUE
                             : PANACEE_COLOR_GREEN;
                         MLV_draw_filled_circle(
-                            mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio),
+                            mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
                             mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
                             5,
                             mlv_color
