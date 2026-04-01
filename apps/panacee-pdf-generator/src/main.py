@@ -1,8 +1,9 @@
-from load_data import preview_data
+from generate_pdf import generate_department_pdf
 
 
 def main():
-    preview_data()
+    pdf_path = generate_department_pdf("75")
+    print(f"PDF généré : {pdf_path}")
 
 
 if __name__ == "__main__":

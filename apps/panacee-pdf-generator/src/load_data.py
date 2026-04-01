@@ -4,6 +4,16 @@ import pandas as pd
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
+def merge_towns_hospitals() -> pd.DataFrame:
+    towns, hospitals, _ = load_all_data()
+
+    merged = hospitals.merge(
+        towns,
+        on="insee",
+        how="left"
+    )
+
+    return merged
 
 def load_towns() -> pd.DataFrame:
     towns_path = DATA_DIR / "communes-france-metrople-2025.csv"
@@ -78,3 +88,89 @@ def preview_data() -> None:
     print(fitness.head())
     print("\nColonnes :", list(fitness.columns))
     print("Shape :", fitness.shape)
+
+def department_summary() -> pd.DataFrame:
+    merged = merge_towns_hospitals()
+    towns, _, _ = load_all_data()
+
+    hospitals_by_department = (
+        merged.groupby(["department_code", "department_name"], dropna=False)
+        .agg(
+            hospital_count=("insee", "count"),
+            total_beds=("beds_count", "sum"),
+        )
+        .reset_index()
+    )
+
+    population_by_department = (
+        towns.groupby(["department_code", "department_name"], dropna=False)
+        .agg(
+            total_population=("inhabitants_count", "sum"),
+        )
+        .reset_index()
+    )
+
+    summary = hospitals_by_department.merge(
+        population_by_department,
+        on=["department_code", "department_name"],
+        how="outer"
+    )
+
+    summary["hospital_count"] = summary["hospital_count"].fillna(0).astype(int)
+    summary["total_beds"] = summary["total_beds"].fillna(0).astype(int)
+    summary["total_population"] = summary["total_population"].fillna(0).astype(int)
+
+    summary["beds_per_1000"] = (
+        summary["total_beds"] / summary["total_population"].replace(0, pd.NA)
+    ) * 1000
+
+    summary["beds_per_1000"] = summary["beds_per_1000"].fillna(0).round(2)
+
+    return summary.sort_values("department_code")
+
+
+def preview_department_summary() -> None:
+    summary = department_summary()
+
+    print("\n=== DEPARTMENT SUMMARY ===")
+    print(summary.head(20))
+    print("\nColonnes :", list(summary.columns))
+    print("Shape :", summary.shape)
+
+def get_department_data(department_code: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    towns, hospitals, _ = load_all_data()
+    merged = merge_towns_hospitals()
+
+    department_towns = towns[towns["department_code"] == department_code].copy()
+
+    department_hospitals = merged[
+        merged["department_code"] == department_code
+    ].copy()
+
+    department_summary_df = department_summary()
+    department_stats = department_summary_df[
+        department_summary_df["department_code"] == department_code
+    ].copy()
+
+    return department_towns, department_hospitals, department_stats
+
+
+def preview_one_department(department_code: str) -> None:
+    department_towns, department_hospitals, department_stats = get_department_data(department_code)
+
+    print(f"\n=== DEPARTMENT {department_code} ===")
+
+    print("\n--- STATS ---")
+    print(department_stats)
+
+    print("\n--- TOWNS ---")
+    print(department_towns.head())
+    print("Nombre de communes :", len(department_towns))
+
+    print("\n--- HOSPITALS ---")
+    print(
+        department_hospitals[
+            ["insee", "city_name", "department_name", "beds_count", "latitude", "longitude"]
+        ].head(20)
+    )
+    print("Nombre d'hôpitaux :", len(department_hospitals))
