@@ -5,6 +5,12 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef USE_MLV
+#include <MLV/MLV_all.h>
+#include "presentation/color/color.h"
+#include "presentation/map/map.h"
+#endif
+
 Individual run_genetic(Town *towns, int town_count)
 {
     int gen, i;
@@ -17,9 +23,25 @@ Individual run_genetic(Town *towns, int town_count)
     int **coverage;
     int *coverage_size;
     int total_inhabitants;
+#ifdef USE_MLV
+    BoundingBox mlv_box;
+    int mlv_height, mlv_sidebar_width, mlv_width, mlv_padding;
+    double mlv_ratio;
+#endif
 
     /* seed RNG with current time for different results each run */
     srand((unsigned int)time(NULL));
+
+#ifdef USE_MLV
+    color_init();
+    mlv_box = getBoundingBox(towns, town_count);
+    mlv_height = (int)(MLV_get_desktop_height() * 0.8);
+    mlv_sidebar_width = 300;
+    mlv_padding = (int)(mlv_height * 0.05);
+    mlv_ratio = (mlv_height - 2 * mlv_padding) / (mlv_box.max_lat - mlv_box.min_lat);
+    mlv_width = (int)(mlv_ratio * (mlv_box.max_lon - mlv_box.min_lon)) + 2 * mlv_padding;
+    MLV_create_window("Panacée Genetics", "Panacée Genetics", mlv_width + mlv_sidebar_width, mlv_height);
+#endif
 
     /* Build a lookup table insee -> town array index, built once for all evaluations */
     insee_to_idx = malloc(100000 * sizeof(int));
@@ -72,6 +94,44 @@ Individual run_genetic(Town *towns, int town_count)
             printf("Stop: stagnation over %d generations.\n", STAGNATION_LIMIT);
             break;
         }
+
+#ifdef USE_MLV
+        if (stagnation == 0 || gen % 100 == 0)
+        {
+            int mlv_j, mlv_idx;
+            MLV_clear_window(MLV_COLOR_BLACK);
+            for (mlv_j = 0; mlv_j < town_count; mlv_j++)
+            {
+                MLV_draw_filled_circle(
+                    mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio),
+                    mlv_height - mlv_padding - (int)((towns[mlv_j].latitude - mlv_box.min_lat) * mlv_ratio),
+                    1,
+                    PANACEE_COLOR_ORANGE
+                );
+            }
+            for (mlv_j = 0; mlv_j < current_best.size; mlv_j++)
+            {
+                mlv_idx = insee_to_idx[current_best.hospitals[mlv_j].insee];
+                if (mlv_idx >= 0)
+                {
+                    MLV_draw_filled_circle(
+                        mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio),
+                        mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
+                        5,
+                        PANACEE_COLOR_GREEN
+                    );
+                }
+            }
+            MLV_draw_line(
+                mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                0,
+                mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio),
+                mlv_height,
+                MLV_COLOR_WHITE
+            );
+            MLV_actualise_window();
+        }
+#endif
 
         /* Build next generation */
         next_pop.size = POPULATION_SIZE;
@@ -180,5 +240,11 @@ Individual run_genetic(Town *towns, int town_count)
     free(coverage);
     free(coverage_size);
     free(insee_to_idx);
+
+#ifdef USE_MLV
+    MLV_wait_seconds(10);
+    MLV_free_window();
+#endif
+
     return result;
 }
