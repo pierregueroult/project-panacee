@@ -1,5 +1,5 @@
 #include "genetic.h"
-#include <math.h>
+#include "infrastructure/exporter/exporter.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,7 +61,7 @@ Individual run_genetic(Town *towns, int town_count)
             /* Progressively increase mutation rate to escape local optima */
             if (stagnation % 10 == 0 && current_mutation_rate < 0.4)
             {
-                current_mutation_rate = fmin(0.4, current_mutation_rate * 1.3);
+                current_mutation_rate = current_mutation_rate * 1.3 < 0.4 ? current_mutation_rate * 1.3 : 0.4;
                 printf("Stagnation at gen %d -> mutation_rate = %.2f\n",
                        stagnation, current_mutation_rate);
             }

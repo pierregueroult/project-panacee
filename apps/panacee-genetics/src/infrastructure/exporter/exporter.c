@@ -1,14 +1,5 @@
-#include "../genetic.h"
-#include <stdlib.h>
+#include "exporter.h"
 #include <stdio.h>
-
-double calculate_fitness_score(int total_inhabitants,
-                               int distant_residents,
-                               int hospitals_count,
-                               int uhc_count)
-{
-    return (double)total_inhabitants - distant_residents - (double)PENALITY_HOSPITAL * hospitals_count + (double)BONUS_UHC * uhc_count;
-}
 
 void export_fitness_csv(const Fitness *fitness, const char *path)
 {
@@ -32,4 +23,27 @@ void export_fitness_csv(const Fitness *fitness, const char *path)
             fitness->fitness_average);
     fclose(f);
     printf("Fitness exported to %s\n", path);
+}
+
+void export_result_csv(const Individual *result, Town *towns,
+                       const int *insee_to_idx, const char *path)
+{
+    int i;
+    FILE *f = fopen(path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Warning: could not open %s for writing\n", path);
+        return;
+    }
+    fprintf(f, "insee,beds_count\n");
+    for (i = 0; i < result->size; i++)
+    {
+        int j = insee_to_idx[result->hospitals[i].insee];
+        if (j >= 0)
+            fprintf(f, "%d,%d\n",
+                    towns[j].insee,
+                    result->hospitals[i].beds_count);
+    }
+    fclose(f);
+    printf("Results exported to %s (%d hospitals)\n", path, result->size);
 }

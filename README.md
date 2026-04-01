@@ -4,25 +4,40 @@ A dual-component application for optimizing healthcare facility placement across
 
 ## Project Structure
 
-```/dev/null/tree.txt#L1-18
+```
 projet-panacée/
 ├── apps/
-│   ├── panacee-genetics/       # C genetic algorithm engine
+│   ├── panacee-genetics/           # C genetic algorithm engine
 │   │   ├── src/
-│   │   │   ├── assets/         # Assets files containing data
-│   │   │   ├── datas/          # Data structures (hospital, town, fitness)
+│   │   │   ├── domain/             # Core business entities (DDD domain layer)
+│   │   │   │   ├── town/           # Town entity (INSEE code, coordinates, population)
+│   │   │   │   ├── hospital/       # Hospital entity (INSEE code, bed count)
+│   │   │   │   └── fitness/        # Fitness value object (scoring metrics)
+│   │   │   ├── infrastructure/     # Data access (DDD infrastructure layer)
+│   │   │   │   └── parser/         # CSV parser for French municipality data
+│   │   │   ├── presentation/       # Rendering and UI (DDD presentation layer)
+│   │   │   │   ├── map/            # Geographic visualization and bounding box
+│   │   │   │   └── color/          # Brand color palette (MLV colors)
 │   │   │   └── main.c
-│   │   ├── bin/                # Compiled object files (.o)
-│   │   ├── makefile            # C build and run targets
-│   │   └── panacee             # Output binary
-│   └── panacee-documents/      # Python analysis/documentation layer
+│   │   ├── bin/                    # Compiled object files (.o)
+│   │   ├── makefile                # C build and run targets
+│   │   └── panacee                 # Output binary
+│   └── panacee-documents/          # Python analysis/documentation layer
 │       ├── main.py
 │       └── requirement.txt
 ├── docs/
-│   ├── instructions/           # Project instructions and recommendations (PDF)
-│   └── project/                # Build documentation
-└── makefile                    # Top-level build orchestrator
+│   ├── instructions/               # Project instructions and recommendations (PDF)
+│   └── project/                    # Build documentation
+└── makefile                        # Top-level build orchestrator
 ```
+
+### Architecture (panacee-genetics)
+
+Le code source suit une organisation inspirée du **Domain Driven Design** :
+
+- **`domain/`** — entités et objets-valeur métier, sans dépendance vers l'infrastructure ou la présentation
+- **`infrastructure/`** — accès aux données externes (lecture CSV, I/O fichiers)
+- **`presentation/`** — rendu graphique via la bibliothèque MLV (fenêtre, carte, couleurs)
 
 ## Components
 

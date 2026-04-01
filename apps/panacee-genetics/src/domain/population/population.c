@@ -1,4 +1,4 @@
-#include "../genetic.h"
+#include "../../genetic.h"
 #include <stdlib.h>
 
 /* Initialize population: 80% greedy individuals for a strong start,
