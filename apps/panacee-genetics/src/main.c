@@ -4,13 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(void)
+int main(int argc, char **argv)
 {
+    const char *csv_path = (argc > 1) ? argv[1] : NULL;
     int count = 0;
     Town *towns;
     Individual result;
 
-    towns = parse(&count);
+    towns = parse(csv_path, &count);
     if (!towns || count <= 0)
     {
         fprintf(stderr, "fatal: failed to load towns dataset\n");

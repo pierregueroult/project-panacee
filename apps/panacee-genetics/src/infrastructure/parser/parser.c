@@ -1,15 +1,19 @@
+#include "parser.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../domain/town/town.h"
 
-#define INSEE_COL 0
-#define NAME_COL 1
+#define INSEE_COL           0
+#define NAME_COL            1
 #define DEPARTMENT_CODE_COL 4
 #define DEPARTMENT_NAME_COL 5
-#define INHABITANTS_COL 7
-#define LATITUDE_COL 8
-#define LONGITUDE_COL 9
+#define INHABITANTS_COL     7
+#define LATITUDE_COL        8
+#define LONGITUDE_COL       9
+
+#define LINE_BUFFER 1024
+#define DEFAULT_CSV_PATH "../../data/communes-france-metrople-2025.csv"
 
 static void copy_field(char *dst, const char *src, size_t cap)
 {
@@ -21,57 +25,110 @@ static void copy_field(char *dst, const char *src, size_t cap)
     dst[n] = '\0';
 }
 
-int count_lines(FILE *fptr)
+static int count_lines(FILE *fptr)
 {
     int lines = 0;
-    char buffer[1024];
-    while (fgets(buffer, 1024, fptr))
-        lines++;
+    int started = 0;
+    char buffer[LINE_BUFFER];
+    while (fgets(buffer, LINE_BUFFER, fptr))
+    {
+        size_t len = strlen(buffer);
+        if (!started)
+        {
+            lines++;
+            started = 1;
+        }
+        if (len > 0 && buffer[len - 1] == '\n')
+            started = 0;
+        else if (feof(fptr))
+            started = 0;
+        else
+            fprintf(stderr,
+                    "Warning: CSV row exceeds %d bytes (will be truncated)\n",
+                    LINE_BUFFER - 1);
+    }
     rewind(fptr);
     return lines;
 }
 
-Town *parse(int *count)
+static const char *resolve_path(const char *path)
 {
-    FILE *fptr = fopen("../../data/communes-france-metrople-2025.csv", "r");
+    const char *env;
+    if (path && *path)
+        return path;
+    env = getenv("PANACEE_CSV_PATH");
+    if (env && *env)
+        return env;
+    return DEFAULT_CSV_PATH;
+}
+
+Town *parse(const char *path, int *count)
+{
+    const char *resolved = resolve_path(path);
+    FILE *fptr;
+    int total;
+    Town *towns;
+    char buffer[LINE_BUFFER];
+    int i = 0;
+
+    *count = 0;
+
+    fptr = fopen(resolved, "r");
     if (!fptr)
     {
-        perror("fopen");
+        fprintf(stderr, "fopen(\"%s\"): ", resolved);
+        perror("");
         return NULL;
     }
 
-    int total = count_lines(fptr);
-    Town *towns = malloc(total * sizeof(Town));
-    if (!towns)
+    total = count_lines(fptr);
+    if (total <= 0)
     {
         fclose(fptr);
         return NULL;
     }
 
-    char buffer[1024];
-    int i = 0;
-    while (fgets(buffer, 1024, fptr))
+    towns = malloc(total * sizeof(Town));
+
+    while (fgets(buffer, LINE_BUFFER, fptr))
     {
         int column = 0;
-        char *value = strtok(buffer, ",");
-        Town town = {0};
+        char *value;
+        Town town;
+
+        memset(&town, 0, sizeof town);
+        value = strtok(buffer, ",\n");
         while (value)
         {
-            if (column == INSEE_COL)
+            switch (column)
+            {
+            case INSEE_COL:
                 town.insee = atoi(value);
-            if (column == NAME_COL)
-                copy_field(town.name, value, sizeof(town.name));
-            if (column == DEPARTMENT_CODE_COL)
-                copy_field(town.department_code, value, sizeof(town.department_code));
-            if (column == DEPARTMENT_NAME_COL)
-                copy_field(town.department_name, value, sizeof(town.department_name));
-            if (column == INHABITANTS_COL)
+                break;
+            case NAME_COL:
+                copy_field(town.name, value, sizeof town.name);
+                break;
+            case DEPARTMENT_CODE_COL:
+                copy_field(town.department_code, value,
+                           sizeof town.department_code);
+                break;
+            case DEPARTMENT_NAME_COL:
+                copy_field(town.department_name, value,
+                           sizeof town.department_name);
+                break;
+            case INHABITANTS_COL:
                 town.inhabitants_count = atoi(value);
-            if (column == LATITUDE_COL)
+                break;
+            case LATITUDE_COL:
                 town.latitude = atof(value);
-            if (column == LONGITUDE_COL)
+                break;
+            case LONGITUDE_COL:
                 town.longitude = atof(value);
-            value = strtok(NULL, ",");
+                break;
+            default:
+                break;
+            }
+            value = strtok(NULL, ",\n");
             column++;
         }
         towns[i++] = town;
