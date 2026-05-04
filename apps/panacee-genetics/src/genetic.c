@@ -329,8 +329,61 @@ Individual run_genetic(Town *towns, int town_count)
     free(insee_to_idx);
 
 #ifdef USE_MLV
-    MLV_wait_seconds(10);
-    MLV_free_window();
+    {
+        int mlv_j, mlv_idx, mlv_sx, mlv_tx, mlv_ty;
+        mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat);
+        mlv_tx = mlv_sx + mlv_padding;
+        MLV_clear_window(MLV_COLOR_BLACK);
+        for (mlv_j = 0; mlv_j < town_count; mlv_j++)
+            MLV_draw_filled_circle(
+                mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
+                mlv_height - mlv_padding - (int)((towns[mlv_j].latitude - mlv_box.min_lat) * mlv_ratio),
+                1,
+                PANACEE_COLOR_ORANGE);
+        for (mlv_j = 0; mlv_j < result.size; mlv_j++)
+        {
+            mlv_idx = insee_to_idx[result.hospitals[mlv_j].insee];
+            if (mlv_idx >= 0)
+            {
+                MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > TRESHOLD_UHC
+                    ? PANACEE_COLOR_BLUE
+                    : PANACEE_COLOR_GREEN;
+                MLV_draw_filled_circle(
+                    mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
+                    mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
+                    5,
+                    mlv_color);
+            }
+        }
+        MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
+        mlv_ty = mlv_padding;
+        MLV_draw_text(mlv_tx, mlv_ty, "Resultat final", MLV_COLOR_WHITE);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux         : %d", MLV_COLOR_WHITE, result.fitness.hospital_count);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "CHRU             : %d", MLV_COLOR_WHITE, result.fitness.uhc_count);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "Habitants eloignes : %d", MLV_COLOR_WHITE,
+                      result.fitness.distant_resident_count);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "%% pop desert     : %.2f", MLV_COLOR_WHITE,
+                      result.fitness.distant_resident_percent);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "Villes eloignees : %d", MLV_COLOR_WHITE,
+                      result.fitness.distant_town_count);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "%% communes desert: %.2f", MLV_COLOR_WHITE,
+                      result.fitness.distant_town_percent);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "FITNESS          : %.0f", MLV_COLOR_WHITE, result.fitness.fitness_score);
+        mlv_ty += 30;
+        MLV_draw_text(mlv_tx, mlv_ty, "Lits totaux      : %d", MLV_COLOR_WHITE, total_beds);
+        mlv_ty += 60;
+        MLV_draw_text(mlv_tx, mlv_ty, "Touche pour quitter...", MLV_COLOR_WHITE);
+        MLV_actualise_window();
+        MLV_wait_keyboard(NULL, NULL, NULL);
+        MLV_free_window();
+    }
 #endif
 
     return result;
