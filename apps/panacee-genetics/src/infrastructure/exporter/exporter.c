@@ -1,16 +1,63 @@
 #include "exporter.h"
 #include "../../genetic.h"
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
+static void ensure_parent_dir(const char *path)
+{
+    char buffer[1024];
+    size_t len;
+    char *p;
+
+    len = strlen(path);
+    if (len == 0 || len >= sizeof buffer)
+        return;
+    memcpy(buffer, path, len + 1);
+
+    for (p = buffer + len; p > buffer; p--)
+        if (*p == '/')
+        {
+            *p = '\0';
+            break;
+        }
+    if (p == buffer)
+        return; /* no directory component */
+
+    for (p = buffer + 1; *p; p++)
+        if (*p == '/')
+        {
+            *p = '\0';
+            if (mkdir(buffer, 0755) != 0 && errno != EEXIST)
+                fprintf(stderr,
+                        "Warning: mkdir(%s) failed: %s\n",
+                        buffer, strerror(errno));
+            *p = '/';
+        }
+    if (mkdir(buffer, 0755) != 0 && errno != EEXIST)
+        fprintf(stderr,
+                "Warning: mkdir(%s) failed: %s\n",
+                buffer, strerror(errno));
+}
+
+static FILE *open_for_write(const char *path)
+{
+    FILE *f;
+    ensure_parent_dir(path);
+    f = fopen(path, "w");
+    if (!f)
+        fprintf(stderr, "Warning: could not open %s for writing: %s\n",
+                path, strerror(errno));
+    return f;
+}
 
 void export_fitness_csv(const Fitness *fitness, const char *path)
 {
-    FILE *f = fopen(path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Warning: could not open %s for writing\n", path);
-        return;
-    }
+    FILE *f = open_for_write(path);
+    if (!f) return;
     fprintf(f, "hospital_count,uhc_count,distant_resident_count,distant_resident_percent,"
                "distant_town_count,distant_town_percent,fitness_score,fitness_count,fitness_average\n");
     fprintf(f, "%d,%d,%d,%.2f,%d,%.2f,%.2f,%d,%.2f\n",
@@ -31,12 +78,8 @@ void export_result_csv(const Individual *result, const Town *towns,
                        const int *insee_to_idx, const char *path)
 {
     int i;
-    FILE *f = fopen(path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Warning: could not open %s for writing\n", path);
-        return;
-    }
+    FILE *f = open_for_write(path);
+    if (!f) return;
     fprintf(f, "insee,name,department_code,department_name,inhabitants,is_chru,beds_count\n");
     for (i = 0; i < result->size; i++)
     {
@@ -91,10 +134,9 @@ void export_towns_status_csv(const Individual *result, const Town *towns,
         }
     }
 
-    f = fopen(path, "w");
+    f = open_for_write(path);
     if (!f)
     {
-        fprintf(stderr, "Warning: could not open %s for writing\n", path);
         free(nearest_insee);
         free(nearest_dist);
         return;
