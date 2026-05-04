@@ -332,39 +332,19 @@ void compute_beds(Individual *ind, const Town *towns, int town_count,
                   const int *insee_to_idx, int **coverage,
                   const int *coverage_size)
 {
-    int i, k, h;
+    int i, h;
     int *inhabitants_per_hospital = calloc(ind->size, sizeof(int));
-    /* nearest_hospital[t] = index in ind->hospitals of the closest hospital covering town t */
     int *nearest_hospital = malloc(town_count * sizeof(int));
-    double *nearest_dist = malloc(town_count * sizeof(double));
 
-    for (i = 0; i < town_count; i++)
-    {
-        nearest_hospital[i] = -1;
-        nearest_dist[i] = INFINITY_KM;
-    }
-
-    for (h = 0; h < ind->size; h++)
-    {
-        int j = insee_to_idx[ind->hospitals[h].insee];
-        if (j < 0)
-            continue;
-        for (k = 0; k < coverage_size[j]; k++)
-        {
-            int t = coverage[j][k];
-            double d = haversine_km(towns[j].latitude, towns[j].longitude,
-                                    towns[t].latitude, towns[t].longitude);
-            if (d < nearest_dist[t])
-            {
-                nearest_dist[t] = d;
-                nearest_hospital[t] = h;
-            }
-        }
-    }
+    nearest_hospital_per_town(ind->hospitals, ind->size,
+                              towns, town_count,
+                              insee_to_idx, coverage, coverage_size,
+                              nearest_hospital, NULL);
 
     for (i = 0; i < town_count; i++)
         if (nearest_hospital[i] >= 0)
-            inhabitants_per_hospital[nearest_hospital[i]] += towns[i].inhabitants_count;
+            inhabitants_per_hospital[nearest_hospital[i]] +=
+                towns[i].inhabitants_count;
 
     for (h = 0; h < ind->size; h++)
         ind->hospitals[h].beds_count =
@@ -372,6 +352,5 @@ void compute_beds(Individual *ind, const Town *towns, int town_count,
 
     free(inhabitants_per_hospital);
     free(nearest_hospital);
-    free(nearest_dist);
 }
 

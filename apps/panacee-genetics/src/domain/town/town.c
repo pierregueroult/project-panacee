@@ -63,3 +63,52 @@ void precompute_coverage(const Town *towns, int town_count,
     free(tmp);
     printf("Coverage map done.\n");
 }
+
+void nearest_hospital_per_town(const Hospital *hospitals, int hospital_count,
+                               const Town *towns, int town_count,
+                               const int *insee_to_idx,
+                               int **coverage, const int *coverage_size,
+                               int *nearest_idx,
+                               double *nearest_dist_km)
+{
+    int i, h, k;
+    double *dist;
+    int dist_owned = 0;
+
+    if (nearest_dist_km)
+    {
+        dist = nearest_dist_km;
+    }
+    else
+    {
+        dist = malloc(town_count * sizeof(double));
+        dist_owned = 1;
+    }
+
+    for (i = 0; i < town_count; i++)
+    {
+        nearest_idx[i] = -1;
+        dist[i] = INFINITY_KM;
+    }
+
+    for (h = 0; h < hospital_count; h++)
+    {
+        int j = insee_to_idx[hospitals[h].insee];
+        if (j < 0)
+            continue;
+        for (k = 0; k < coverage_size[j]; k++)
+        {
+            int t = coverage[j][k];
+            double d = haversine_km(towns[j].latitude, towns[j].longitude,
+                                    towns[t].latitude, towns[t].longitude);
+            if (d < dist[t])
+            {
+                dist[t] = d;
+                nearest_idx[t] = h;
+            }
+        }
+    }
+
+    if (dist_owned)
+        free(dist);
+}

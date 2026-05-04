@@ -105,54 +105,37 @@ void export_towns_status_csv(const Individual *result, const Town *towns,
                              int **coverage, const int *coverage_size,
                              const char *path)
 {
-    int i, k, h;
+    int i;
     FILE *f;
-    int *nearest_insee = malloc(town_count * sizeof(int));
-    double *nearest_dist = malloc(town_count * sizeof(double));
+    int *nearest_idx = malloc(town_count * sizeof(int));
 
-    for (i = 0; i < town_count; i++)
-    {
-        nearest_insee[i] = -1;
-        nearest_dist[i] = INFINITY_KM;
-    }
-
-    for (h = 0; h < result->size; h++)
-    {
-        int j = insee_to_idx[result->hospitals[h].insee];
-        if (j < 0)
-            continue;
-        for (k = 0; k < coverage_size[j]; k++)
-        {
-            int t = coverage[j][k];
-            double d = haversine_km(towns[j].latitude, towns[j].longitude,
-                                    towns[t].latitude, towns[t].longitude);
-            if (d < nearest_dist[t])
-            {
-                nearest_dist[t] = d;
-                nearest_insee[t] = towns[j].insee;
-            }
-        }
-    }
+    nearest_hospital_per_town(result->hospitals, result->size,
+                              towns, town_count,
+                              insee_to_idx, coverage, coverage_size,
+                              nearest_idx, NULL);
 
     f = open_for_write(path);
     if (!f)
     {
-        free(nearest_insee);
-        free(nearest_dist);
+        free(nearest_idx);
         return;
     }
     fprintf(f, "insee,name,department_code,department_name,inhabitants,assigned_hospital_insee\n");
     for (i = 0; i < town_count; i++)
+    {
+        int hidx = nearest_idx[i];
+        int assigned_insee =
+            hidx >= 0 ? result->hospitals[hidx].insee : -1;
         fprintf(f, "%d,\"%s\",%s,\"%s\",%d,%d\n",
                 towns[i].insee,
                 towns[i].name,
                 towns[i].department_code,
                 towns[i].department_name,
                 towns[i].inhabitants_count,
-                nearest_insee[i]);
+                assigned_insee);
+    }
     fclose(f);
     printf("Towns status exported to %s (%d towns)\n", path, town_count);
 
-    free(nearest_insee);
-    free(nearest_dist);
+    free(nearest_idx);
 }
