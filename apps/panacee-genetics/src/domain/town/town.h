@@ -1,8 +1,6 @@
 #ifndef TOWN_H
 #define TOWN_H
 
-#define TOWN_COUNT 34437
-
 typedef struct
 {
     int insee;
