@@ -18,6 +18,8 @@
 #define MAX_GENERATIONS 200000
 #define STAGNATION_LIMIT 200
 
+#define INSEE_MAX 100000
+
 Individual run_genetic(Town *towns, int town_count);
 
 #endif

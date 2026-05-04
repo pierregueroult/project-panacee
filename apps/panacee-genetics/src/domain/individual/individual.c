@@ -167,7 +167,7 @@ Individual crossover(const Individual *a, const Individual *b, int town_count)
     int i;
     Individual child;
     /* INSEE codes are at most 5 digits (max 99999) */
-    char *present = calloc(100000, 1);
+    char *present = calloc(INSEE_MAX, 1);
     Hospital *pool = malloc((a->size + b->size) * sizeof(Hospital));
     int pool_n = 0;
     int target_size;

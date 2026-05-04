@@ -71,11 +71,20 @@ Individual run_genetic(Town *towns, int town_count)
 #endif
 
     /* Build a lookup table insee -> town array index, built once for all evaluations */
-    insee_to_idx = malloc(100000 * sizeof(int));
-    for (i = 0; i < 100000; i++)
+    insee_to_idx = malloc(INSEE_MAX * sizeof(int));
+    for (i = 0; i < INSEE_MAX; i++)
         insee_to_idx[i] = -1;
     for (i = 0; i < town_count; i++)
+    {
+        if (towns[i].insee < 0 || towns[i].insee >= INSEE_MAX)
+        {
+            fprintf(stderr,
+                    "Warning: INSEE %d out of [0,%d), skipping\n",
+                    towns[i].insee, INSEE_MAX);
+            continue;
+        }
         insee_to_idx[towns[i].insee] = i;
+    }
 
 #ifdef USE_MLV
     mlv_loading(towns, town_count, mlv_padding,
