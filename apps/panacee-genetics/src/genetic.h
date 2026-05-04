@@ -19,6 +19,7 @@
 #define STAGNATION_LIMIT 200
 
 #define INSEE_MAX 100000
+#define INFINITY_KM 1e18
 
 Individual run_genetic(const Town *towns, int town_count);
 

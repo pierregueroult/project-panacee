@@ -341,7 +341,7 @@ void compute_beds(Individual *ind, const Town *towns, int town_count,
     for (i = 0; i < town_count; i++)
     {
         nearest_hospital[i] = -1;
-        nearest_dist[i] = 1e18;
+        nearest_dist[i] = INFINITY_KM;
     }
 
     for (h = 0; h < ind->size; h++)

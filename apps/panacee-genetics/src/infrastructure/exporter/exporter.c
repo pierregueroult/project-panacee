@@ -113,7 +113,7 @@ void export_towns_status_csv(const Individual *result, const Town *towns,
     for (i = 0; i < town_count; i++)
     {
         nearest_insee[i] = -1;
-        nearest_dist[i] = 1e18;
+        nearest_dist[i] = INFINITY_KM;
     }
 
     for (h = 0; h < result->size; h++)
