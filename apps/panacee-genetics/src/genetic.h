@@ -17,6 +17,7 @@
 #define MUTATION_RATE 0.95       /* mutation probability per individual         */
 #define MAX_GENERATIONS 200000
 #define STAGNATION_LIMIT 200
+#define PROGRESS_INTERVAL 25
 
 #define INSEE_MAX 100000
 #define INFINITY_KM 1e18

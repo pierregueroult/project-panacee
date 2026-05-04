@@ -87,6 +87,23 @@ static void local_search(Individual *result, const Town *towns, int town_count,
     }
 }
 
+static void init_seed(void)
+{
+    const char *env_seed = getenv("PANACEE_SEED");
+    unsigned int seed;
+    if (env_seed && *env_seed)
+    {
+        seed = (unsigned int)strtoul(env_seed, NULL, 10);
+        printf("Seed (env): %u\n", seed);
+    }
+    else
+    {
+        seed = (unsigned int)time(NULL);
+        printf("Seed (time): %u\n", seed);
+    }
+    srand(seed);
+}
+
 Individual run_genetic(const Town *towns, int town_count)
 {
     int gen, i;
@@ -104,8 +121,7 @@ Individual run_genetic(const Town *towns, int town_count)
     char *covered_overlay;
     MapView view;
 
-    /* seed RNG with current time for different results each run */
-    srand((unsigned int)time(NULL));
+    init_seed();
 
     map_init(&view, towns, town_count);
 
@@ -134,16 +150,18 @@ Individual run_genetic(const Town *towns, int town_count)
     {
         Individual current_best = best_individual(&pop);
         double best_score = current_best.fitness.fitness_score;
+        int improved = best_score > prev_best;
 
-        printf("Gen %4d | fitness: %.0f | hop: %d | CHRU: %d | desert: %d (%.1f%%)\n",
-               gen,
-               best_score,
-               current_best.fitness.hospital_count,
-               current_best.fitness.uhc_count,
-               current_best.fitness.distant_resident_count,
-               (double)current_best.fitness.distant_resident_percent);
+        if (improved || gen % PROGRESS_INTERVAL == 0)
+            printf("Gen %4d | fitness: %.0f | hop: %d | CHRU: %d | desert: %d (%.1f%%)\n",
+                   gen,
+                   best_score,
+                   current_best.fitness.hospital_count,
+                   current_best.fitness.uhc_count,
+                   current_best.fitness.distant_resident_count,
+                   (double)current_best.fitness.distant_resident_percent);
 
-        if (best_score > prev_best)
+        if (improved)
         {
             prev_best = best_score;
             stagnation = 0;
