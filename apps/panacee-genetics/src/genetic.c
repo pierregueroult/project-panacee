@@ -85,7 +85,14 @@ Individual run_genetic(Town *towns, int town_count)
 #endif
     precompute_coverage(towns, town_count, &coverage, &coverage_size);
 
-    total_inhabitants = inhabitant_count(towns, town_count);
+    total_inhabitants = TOTAL_INHABITANTS;
+    {
+        int data_total = inhabitant_count(towns, town_count);
+        if (data_total != TOTAL_INHABITANTS)
+            fprintf(stderr,
+                    "Warning: dataset total (%d) differs from spec total (%d)\n",
+                    data_total, TOTAL_INHABITANTS);
+    }
 
 #ifdef USE_MLV
     mlv_loading(towns, town_count, mlv_padding,
