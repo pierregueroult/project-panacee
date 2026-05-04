@@ -59,15 +59,40 @@ Individual run_genetic(Town *towns, int town_count)
     srand((unsigned int)time(NULL));
 
 #ifdef USE_MLV
-    color_init();
-    mlv_box = get_bounding_box(towns, town_count);
-    mlv_height = (int)(MLV_get_desktop_height() * 0.8);
-    mlv_sidebar_width = 300;
-    mlv_padding = (int)(mlv_height * 0.05);
-    mlv_cos_lat = cos((mlv_box.min_lat + mlv_box.max_lat) / 2.0 * M_PI / 180.0);
-    mlv_ratio = (mlv_height - 2 * mlv_padding) / (mlv_box.max_lat - mlv_box.min_lat);
-    mlv_width = (int)(mlv_ratio * (mlv_box.max_lon - mlv_box.min_lon) * mlv_cos_lat) + 2 * mlv_padding;
-    MLV_create_window("Panacée Genetics", "Panacée Genetics", mlv_width + mlv_sidebar_width, mlv_height);
+    {
+        double lat_span, lon_span;
+        int desktop_h;
+
+        color_init();
+        mlv_box = get_bounding_box(towns, town_count);
+        lat_span = mlv_box.max_lat - mlv_box.min_lat;
+        lon_span = mlv_box.max_lon - mlv_box.min_lon;
+
+        desktop_h = MLV_get_desktop_height();
+        if (desktop_h < 600) desktop_h = 600;
+        mlv_height = (int)(desktop_h * 0.8);
+
+        mlv_sidebar_width = 300;
+        mlv_padding = (int)(mlv_height * 0.05);
+        if (mlv_padding < 4) mlv_padding = 4;
+
+        mlv_cos_lat = cos((mlv_box.min_lat + mlv_box.max_lat) / 2.0 * M_PI / 180.0);
+
+        if (lat_span > 0.0 && lon_span > 0.0)
+        {
+            mlv_ratio = (mlv_height - 2 * mlv_padding) / lat_span;
+            mlv_width = (int)(mlv_ratio * lon_span * mlv_cos_lat) + 2 * mlv_padding;
+        }
+        else
+        {
+            /* Degenerate dataset (single town / empty): fall back to a square. */
+            mlv_ratio = 1.0;
+            mlv_width = mlv_height;
+        }
+
+        MLV_create_window("Panacée Genetics", "Panacée Genetics",
+                          mlv_width + mlv_sidebar_width, mlv_height);
+    }
 #endif
 
     /* Build a lookup table insee -> town array index, built once for all evaluations */
