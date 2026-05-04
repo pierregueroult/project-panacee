@@ -23,7 +23,7 @@ void evaluate(Individual *ind, Town *towns, int town_count,
             continue;
         for (k = 0; k < coverage_size[j]; k++)
             covered[coverage[j][k]] = 1;
-        if (towns[j].inhabitants_count > TRESHOLD_UHC)
+        if (towns[j].inhabitants_count > THRESHOLD_UHC)
             uhc_count++;
     }
 

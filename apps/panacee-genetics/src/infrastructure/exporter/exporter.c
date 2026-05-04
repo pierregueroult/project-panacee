@@ -48,7 +48,7 @@ void export_result_csv(const Individual *result, Town *towns,
                     towns[j].department_code,
                     towns[j].department_name,
                     towns[j].inhabitants_count,
-                    towns[j].inhabitants_count > TRESHOLD_UHC ? 1 : 0,
+                    towns[j].inhabitants_count > THRESHOLD_UHC ? 1 : 0,
                     result->hospitals[i].beds_count);
     }
     fclose(f);

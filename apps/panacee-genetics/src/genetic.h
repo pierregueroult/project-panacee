@@ -6,9 +6,9 @@
 
 #define EARTH_RADIUS_KM 6371.0
 #define RADIUS_HOSPITAL_KM 10.0     /* coverage radius of a hospital (km)         */
-#define PENALITY_HOSPITAL 5000      /* fitness penalty per hospital               */
+#define PENALTY_HOSPITAL 5000      /* fitness penalty per hospital               */
 #define BONUS_UHC 4000              /* fitness bonus per CHRU                     */
-#define TRESHOLD_UHC 80000          /* population threshold for CHRU status       */
+#define THRESHOLD_UHC 80000          /* population threshold for CHRU status       */
 #define TOTAL_INHABITANTS 65141355  /* INSEE 2025: France metropolitaine sans Corse */
 #define BEDS_PER_INHABITANT 5.40 /* target: beds per 1000 covered inhabitants   */
 #define INIT_HOSPITAL_RATIO 0.05 /* ~5% of towns have a hospital at init        */

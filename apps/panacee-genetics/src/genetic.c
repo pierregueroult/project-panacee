@@ -170,7 +170,7 @@ Individual run_genetic(Town *towns, int town_count)
                     mlv_idx = insee_to_idx[current_best.hospitals[mlv_j].insee];
                     if (mlv_idx >= 0)
                     {
-                        MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > TRESHOLD_UHC
+                        MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > THRESHOLD_UHC
                             ? PANACEE_COLOR_BLUE
                             : PANACEE_COLOR_GREEN;
                         MLV_draw_filled_circle(
@@ -285,7 +285,7 @@ Individual run_genetic(Town *towns, int town_count)
                 for (k = 0; k < coverage_size[i]; k++)
                     if (cover_count[coverage[i][k]] == 0)
                         gain += towns[coverage[i][k]].inhabitants_count;
-                if (gain > PENALITY_HOSPITAL)
+                if (gain > PENALTY_HOSPITAL)
                 {
                     result.hospitals[result.size].insee = towns[i].insee;
                     result.hospitals[result.size].beds_count = 0;
@@ -345,7 +345,7 @@ Individual run_genetic(Town *towns, int town_count)
             mlv_idx = insee_to_idx[result.hospitals[mlv_j].insee];
             if (mlv_idx >= 0)
             {
-                MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > TRESHOLD_UHC
+                MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > THRESHOLD_UHC
                     ? PANACEE_COLOR_BLUE
                     : PANACEE_COLOR_GREEN;
                 MLV_draw_filled_circle(
