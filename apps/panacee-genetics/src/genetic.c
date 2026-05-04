@@ -309,6 +309,12 @@ Individual run_genetic(Town *towns, int town_count)
     }
     printf("Local search done.\n");
 
+    /* Recompute fitness statistics — local search added hospitals but did
+       not update result.fitness, so all printed/exported numbers below
+       would otherwise reflect the pre-local-search state. */
+    evaluate(&result, towns, town_count, insee_to_idx, coverage,
+             coverage_size, total_inhabitants);
+
     /* Compute beds per hospital (post-optimization) */
     compute_beds(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
 
