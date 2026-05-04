@@ -20,6 +20,6 @@
 
 #define INSEE_MAX 100000
 
-Individual run_genetic(Town *towns, int town_count);
+Individual run_genetic(const Town *towns, int town_count);
 
 #endif

@@ -5,7 +5,7 @@
 
 /* Evaluate an individual using precomputed coverage lists.
    coverage[j] = array of town indices within RADIUS_HOSPITAL_KM of town j. */
-void evaluate(Individual *ind, Town *towns, int town_count,
+void evaluate(Individual *ind, const Town *towns, int town_count,
               const int *insee_to_idx, int **coverage, const int *coverage_size,
               int total_inhabitants)
 {
@@ -51,7 +51,7 @@ void evaluate(Individual *ind, Town *towns, int town_count,
 
 /* Random individual: pick k random distinct towns as hospitals.
    k varies in [ratio/2 .. ratio*2] to seed diversity in the population. */
-Individual create_individual_random(Town *towns, int town_count)
+Individual create_individual_random(const Town *towns, int town_count)
 {
     Individual ind;
     int i, k;
@@ -82,7 +82,7 @@ Individual create_individual_random(Town *towns, int town_count)
 /* Greedy stochastic individual: at each step, pick randomly from towns whose
    score (uncovered inhabitants they would cover) is >= 90% of the current best.
    Scores are updated lazily — O(town_count * avg_coverage) total. */
-Individual create_individual_greedy(Town *towns, int town_count,
+Individual create_individual_greedy(const Town *towns, int town_count,
                                     int **coverage, const int *coverage_size)
 {
     Individual ind;
@@ -255,8 +255,9 @@ void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
 }
 
 /* Random variation for an individual */
-void mutate(Individual *ind, Town *towns, int town_count, double mutation_rate,
-            int **coverage, const int *coverage_size, const int *insee_to_idx)
+void mutate(Individual *ind, const Town *towns, int town_count,
+            double mutation_rate, int **coverage, const int *coverage_size,
+            const int *insee_to_idx)
 {
     int op, idx, new_idx, i, k;
 
@@ -327,8 +328,9 @@ void mutate(Individual *ind, Town *towns, int town_count, double mutation_rate,
 /* Compute beds_count for each hospital in the result.
    Each covered town is assigned to its nearest hospital.
    beds_count = floor(BEDS_PER_INHABITANT / 1000 * assigned_inhabitants).*/
-void compute_beds(Individual *ind, Town *towns, int town_count,
-                  const int *insee_to_idx, int **coverage, const int *coverage_size)
+void compute_beds(Individual *ind, const Town *towns, int town_count,
+                  const int *insee_to_idx, int **coverage,
+                  const int *coverage_size)
 {
     int i, k, h;
     int *inhabitants_per_hospital = calloc(ind->size, sizeof(int));

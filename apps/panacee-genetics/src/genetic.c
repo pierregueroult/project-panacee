@@ -87,7 +87,7 @@ static void local_search(Individual *result, const Town *towns, int town_count,
     }
 }
 
-Individual run_genetic(Town *towns, int town_count)
+Individual run_genetic(const Town *towns, int town_count)
 {
     int gen, i;
     int stagnation = 0;

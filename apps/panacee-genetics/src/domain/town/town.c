@@ -16,7 +16,7 @@ double haversine_km(double lat1, double lon1, double lat2, double lon2)
     return EARTH_RADIUS_KM * 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
 }
 
-int inhabitant_count(Town *towns, int size)
+int inhabitant_count(const Town *towns, int size)
 {
     int result = 0;
     int i;
@@ -27,7 +27,8 @@ int inhabitant_count(Town *towns, int size)
 
 /* Precompute coverage lists: for each town, which towns are within radius.
    Uses a latitude bounding box to skip most pairs before calling haversine. */
-void precompute_coverage(Town *towns, int town_count, int ***coverage, int **coverage_size)
+void precompute_coverage(const Town *towns, int town_count,
+                         int ***coverage, int **coverage_size)
 {
     int i, j, cnt;
     double dlat_max = RADIUS_HOSPITAL_KM / 111.0;

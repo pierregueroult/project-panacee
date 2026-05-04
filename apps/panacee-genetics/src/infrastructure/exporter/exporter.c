@@ -27,7 +27,7 @@ void export_fitness_csv(const Fitness *fitness, const char *path)
     printf("Fitness exported to %s\n", path);
 }
 
-void export_result_csv(const Individual *result, Town *towns,
+void export_result_csv(const Individual *result, const Town *towns,
                        const int *insee_to_idx, const char *path)
 {
     int i;
@@ -57,9 +57,10 @@ void export_result_csv(const Individual *result, Town *towns,
 
 /* For each town, write its coverage status: assigned hospital INSEE (-1 if desert).
    Assignment uses nearest hospital among those whose 10 km disc covers the town. */
-void export_towns_status_csv(const Individual *result, Town *towns, int town_count,
-                             const int *insee_to_idx, int **coverage,
-                             const int *coverage_size, const char *path)
+void export_towns_status_csv(const Individual *result, const Town *towns,
+                             int town_count, const int *insee_to_idx,
+                             int **coverage, const int *coverage_size,
+                             const char *path)
 {
     int i, k, h;
     FILE *f;
