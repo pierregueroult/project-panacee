@@ -179,21 +179,34 @@ Individual run_genetic(Town *towns, int town_count)
             MLV_draw_filled_rectangle(mlv_sx + 1, 0, mlv_sidebar_width, mlv_height, MLV_COLOR_BLACK);
             MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
             mlv_ty = mlv_padding;
-            MLV_draw_text(mlv_tx, mlv_ty, "Generation  : %d", MLV_COLOR_WHITE, gen);
+            MLV_draw_text(mlv_tx, mlv_ty, "Generation       : %d", MLV_COLOR_WHITE, gen);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Fitness     : %.0f", MLV_COLOR_WHITE, best_score);
+            MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux         : %d", MLV_COLOR_WHITE, current_best.fitness.hospital_count);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux    : %d", MLV_COLOR_WHITE, current_best.fitness.hospital_count);
+            MLV_draw_text(mlv_tx, mlv_ty, "CHRU             : %d", MLV_COLOR_WHITE, current_best.fitness.uhc_count);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "CHRU        : %d", MLV_COLOR_WHITE, current_best.fitness.uhc_count);
+            MLV_draw_text(mlv_tx, mlv_ty, "Habitants eloignes : %d", MLV_COLOR_WHITE,
+                          current_best.fitness.distant_resident_count);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Deserts     : %d (%.1f%%)", MLV_COLOR_WHITE,
-                          current_best.fitness.distant_resident_count,
+            MLV_draw_text(mlv_tx, mlv_ty, "%% pop desert     : %.2f", MLV_COLOR_WHITE,
                           current_best.fitness.distant_resident_percent);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Stagnation  : %d / %d", MLV_COLOR_WHITE, stagnation, STAGNATION_LIMIT);
+            MLV_draw_text(mlv_tx, mlv_ty, "Villes eloignees : %d", MLV_COLOR_WHITE,
+                          current_best.fitness.distant_town_count);
             mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Mutation    : %.2f", MLV_COLOR_WHITE, current_mutation_rate);
+            MLV_draw_text(mlv_tx, mlv_ty, "%% communes desert: %.2f", MLV_COLOR_WHITE,
+                          current_best.fitness.distant_town_percent);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "FITNESS          : %.0f", MLV_COLOR_WHITE, best_score);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Taille population: %d", MLV_COLOR_WHITE, POPULATION_SIZE);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Fitness moyenne  : %.0f", MLV_COLOR_WHITE,
+                          current_best.fitness.fitness_average);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Stagnation       : %d / %d", MLV_COLOR_WHITE, stagnation, STAGNATION_LIMIT);
+            mlv_ty += 30;
+            MLV_draw_text(mlv_tx, mlv_ty, "Mutation         : %.2f", MLV_COLOR_WHITE, current_mutation_rate);
             MLV_actualise_window();
         }
 #endif
