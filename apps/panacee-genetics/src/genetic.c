@@ -1,41 +1,91 @@
 #include "genetic.h"
 #include "infrastructure/exporter/exporter.h"
-#include <stdlib.h>
+#include "presentation/map/map.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#ifdef USE_MLV
-#include <MLV/MLV_all.h>
-#include <math.h>
-#include "presentation/color/color.h"
-#include "presentation/map/map.h"
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-static void mlv_loading(Town *towns, int town_count,
-                         int padding, double min_lon, double min_lat,
-                         double ratio, double cos_lat, int height, int sidebar_x,
-                         const char *msg)
+static int *build_insee_to_idx(const Town *towns, int town_count)
 {
-    int j;
-    MLV_clear_window(MLV_COLOR_BLACK);
-    for (j = 0; j < town_count; j++)
+    int *table = malloc(INSEE_MAX * sizeof(int));
+    int i;
+
+    for (i = 0; i < INSEE_MAX; i++)
+        table[i] = -1;
+    for (i = 0; i < town_count; i++)
     {
-        MLV_draw_filled_circle(
-            padding + (int)((towns[j].longitude - min_lon) * ratio * cos_lat),
-            height - padding - (int)((towns[j].latitude - min_lat) * ratio),
-            1,
-            PANACEE_COLOR_ORANGE
-        );
+        if (towns[i].insee < 0 || towns[i].insee >= INSEE_MAX)
+        {
+            fprintf(stderr,
+                    "Warning: INSEE %d out of [0,%d), skipping\n",
+                    towns[i].insee, INSEE_MAX);
+            continue;
+        }
+        table[towns[i].insee] = i;
     }
-    MLV_draw_line(sidebar_x, 0, sidebar_x, height, MLV_COLOR_WHITE);
-    MLV_draw_text(sidebar_x + padding, height / 2, msg, MLV_COLOR_WHITE);
-    MLV_actualise_window();
+    return table;
 }
-#endif
+
+static void compute_covered(char *covered,
+                            const Individual *ind, int town_count,
+                            const int *insee_to_idx,
+                            int **coverage, const int *coverage_size)
+{
+    int i, k;
+    memset(covered, 0, town_count);
+    for (i = 0; i < ind->size; i++)
+    {
+        int j = insee_to_idx[ind->hospitals[i].insee];
+        if (j < 0) continue;
+        for (k = 0; k < coverage_size[j]; k++)
+            covered[coverage[j][k]] = 1;
+    }
+}
+
+static void local_search(Individual *result, const Town *towns, int town_count,
+                         const int *insee_to_idx,
+                         int **coverage, const int *coverage_size)
+{
+    int improved = 1;
+    int i, k;
+
+    while (improved)
+    {
+        int *cover_count = calloc(town_count, sizeof(int));
+
+        improved = 0;
+        for (i = 0; i < result->size; i++)
+        {
+            int j = insee_to_idx[result->hospitals[i].insee];
+            if (j >= 0)
+                for (k = 0; k < coverage_size[j]; k++)
+                    cover_count[coverage[j][k]]++;
+        }
+
+        for (i = 0; i < town_count; i++)
+        {
+            int gain;
+            if (cover_count[i] > 0)
+                continue;
+            gain = 0;
+            for (k = 0; k < coverage_size[i]; k++)
+                if (cover_count[coverage[i][k]] == 0)
+                    gain += towns[coverage[i][k]].inhabitants_count;
+            if (gain > PENALTY_HOSPITAL)
+            {
+                result->hospitals[result->size].insee = towns[i].insee;
+                result->hospitals[result->size].beds_count = 0;
+                result->size++;
+                for (k = 0; k < coverage_size[i]; k++)
+                    cover_count[coverage[i][k]]++;
+                improved = 1;
+            }
+        }
+        free(cover_count);
+    }
+}
 
 Individual run_genetic(Town *towns, int town_count)
 {
@@ -49,74 +99,19 @@ Individual run_genetic(Town *towns, int town_count)
     int **coverage;
     int *coverage_size;
     int total_inhabitants;
-#ifdef USE_MLV
-    BoundingBox mlv_box;
-    int mlv_height, mlv_sidebar_width, mlv_width, mlv_padding;
-    double mlv_ratio, mlv_cos_lat;
-#endif
+    int total_beds;
+    int covered_inhabitants;
+    char *covered_overlay;
+    MapView view;
 
     /* seed RNG with current time for different results each run */
     srand((unsigned int)time(NULL));
 
-#ifdef USE_MLV
-    {
-        double lat_span, lon_span;
-        int desktop_h;
+    map_init(&view, towns, town_count);
 
-        color_init();
-        mlv_box = get_bounding_box(towns, town_count);
-        lat_span = mlv_box.max_lat - mlv_box.min_lat;
-        lon_span = mlv_box.max_lon - mlv_box.min_lon;
+    insee_to_idx = build_insee_to_idx(towns, town_count);
 
-        desktop_h = MLV_get_desktop_height();
-        if (desktop_h < 600) desktop_h = 600;
-        mlv_height = (int)(desktop_h * 0.8);
-
-        mlv_sidebar_width = 300;
-        mlv_padding = (int)(mlv_height * 0.05);
-        if (mlv_padding < 4) mlv_padding = 4;
-
-        mlv_cos_lat = cos((mlv_box.min_lat + mlv_box.max_lat) / 2.0 * M_PI / 180.0);
-
-        if (lat_span > 0.0 && lon_span > 0.0)
-        {
-            mlv_ratio = (mlv_height - 2 * mlv_padding) / lat_span;
-            mlv_width = (int)(mlv_ratio * lon_span * mlv_cos_lat) + 2 * mlv_padding;
-        }
-        else
-        {
-            /* Degenerate dataset (single town / empty): fall back to a square. */
-            mlv_ratio = 1.0;
-            mlv_width = mlv_height;
-        }
-
-        MLV_create_window("Panacée Genetics", "Panacée Genetics",
-                          mlv_width + mlv_sidebar_width, mlv_height);
-    }
-#endif
-
-    /* Build a lookup table insee -> town array index, built once for all evaluations */
-    insee_to_idx = malloc(INSEE_MAX * sizeof(int));
-    for (i = 0; i < INSEE_MAX; i++)
-        insee_to_idx[i] = -1;
-    for (i = 0; i < town_count; i++)
-    {
-        if (towns[i].insee < 0 || towns[i].insee >= INSEE_MAX)
-        {
-            fprintf(stderr,
-                    "Warning: INSEE %d out of [0,%d), skipping\n",
-                    towns[i].insee, INSEE_MAX);
-            continue;
-        }
-        insee_to_idx[towns[i].insee] = i;
-    }
-
-#ifdef USE_MLV
-    mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                "Calcul de la couverture...");
-#endif
+    map_draw_loading(&view, towns, town_count, "Calcul de la couverture...");
     precompute_coverage(towns, town_count, &coverage, &coverage_size);
 
     total_inhabitants = TOTAL_INHABITANTS;
@@ -128,21 +123,12 @@ Individual run_genetic(Town *towns, int town_count)
                     data_total, TOTAL_INHABITANTS);
     }
 
-#ifdef USE_MLV
-    mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                "Initialisation de la population...");
-#endif
+    map_draw_loading(&view, towns, town_count, "Initialisation de la population...");
     pop = init_population(towns, town_count, coverage, coverage_size);
 
-#ifdef USE_MLV
-    mlv_loading(towns, town_count, mlv_padding,
-                mlv_box.min_lon, mlv_box.min_lat, mlv_ratio, mlv_cos_lat,
-                mlv_height, mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                "Evaluation de la generation initiale...");
-#endif
-    evaluate_population(&pop, towns, town_count, insee_to_idx, coverage, coverage_size, total_inhabitants);
+    map_draw_loading(&view, towns, town_count, "Evaluation de la generation initiale...");
+    evaluate_population(&pop, towns, town_count, insee_to_idx, coverage,
+                        coverage_size, total_inhabitants);
 
     for (gen = 0; gen < MAX_GENERATIONS; gen++)
     {
@@ -161,7 +147,7 @@ Individual run_genetic(Town *towns, int town_count)
         {
             prev_best = best_score;
             stagnation = 0;
-            current_mutation_rate = MUTATION_RATE; /* reset mutation rate on improvement */
+            current_mutation_rate = MUTATION_RATE;
         }
         else
         {
@@ -182,171 +168,69 @@ Individual run_genetic(Town *towns, int town_count)
             break;
         }
 
-#ifdef USE_MLV
-        {
-            int mlv_j, mlv_idx, mlv_sx, mlv_tx, mlv_ty;
-            mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat);
-            mlv_tx = mlv_sx + mlv_padding;
-            if (stagnation == 0)
-            {
-                MLV_clear_window(MLV_COLOR_BLACK);
-                for (mlv_j = 0; mlv_j < town_count; mlv_j++)
-                {
-                    MLV_draw_filled_circle(
-                        mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                        mlv_height - mlv_padding - (int)((towns[mlv_j].latitude - mlv_box.min_lat) * mlv_ratio),
-                        1,
-                        PANACEE_COLOR_ORANGE
-                    );
-                }
-                for (mlv_j = 0; mlv_j < current_best.size; mlv_j++)
-                {
-                    mlv_idx = insee_to_idx[current_best.hospitals[mlv_j].insee];
-                    if (mlv_idx >= 0)
-                    {
-                        MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > THRESHOLD_UHC
-                            ? PANACEE_COLOR_BLUE
-                            : PANACEE_COLOR_GREEN;
-                        MLV_draw_filled_circle(
-                            mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                            mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
-                            5,
-                            mlv_color
-                        );
-                    }
-                }
-                MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
-            }
-            MLV_draw_filled_rectangle(mlv_sx + 1, 0, mlv_sidebar_width, mlv_height, MLV_COLOR_BLACK);
-            MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
-            mlv_ty = mlv_padding;
-            MLV_draw_text(mlv_tx, mlv_ty, "Generation       : %d", MLV_COLOR_WHITE, gen);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux         : %d", MLV_COLOR_WHITE, current_best.fitness.hospital_count);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "CHRU             : %d", MLV_COLOR_WHITE, current_best.fitness.uhc_count);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Habitants eloignes : %d", MLV_COLOR_WHITE,
-                          current_best.fitness.distant_resident_count);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "%% pop desert     : %.2f", MLV_COLOR_WHITE,
-                          current_best.fitness.distant_resident_percent);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Villes eloignees : %d", MLV_COLOR_WHITE,
-                          current_best.fitness.distant_town_count);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "%% communes desert: %.2f", MLV_COLOR_WHITE,
-                          current_best.fitness.distant_town_percent);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "FITNESS          : %.0f", MLV_COLOR_WHITE, best_score);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Taille population: %d", MLV_COLOR_WHITE, POPULATION_SIZE);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Fitness moyenne  : %.0f", MLV_COLOR_WHITE,
-                          current_best.fitness.fitness_average);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Stagnation       : %d / %d", MLV_COLOR_WHITE, stagnation, STAGNATION_LIMIT);
-            mlv_ty += 30;
-            MLV_draw_text(mlv_tx, mlv_ty, "Mutation         : %.2f", MLV_COLOR_WHITE, current_mutation_rate);
-            MLV_actualise_window();
-        }
-#endif
+        map_draw_state(&view, towns, town_count,
+                       &current_best, insee_to_idx,
+                       gen, stagnation, STAGNATION_LIMIT,
+                       current_mutation_rate,
+                       current_best.fitness.fitness_average,
+                       stagnation == 0);
 
         /* Build next generation */
         next_pop.size = POPULATION_SIZE;
         next_pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
 
         /* Elitism: carry the best individual unchanged into the next generation */
-
-        Individual elite = best_individual(&pop);
-        next_pop.individuals[0].hospitals = malloc(town_count * sizeof(Hospital));
-        next_pop.individuals[0].size = elite.size;
-        memcpy(next_pop.individuals[0].hospitals,
-               elite.hospitals,
-               elite.size * sizeof(Hospital));
-        next_pop.individuals[0].fitness = elite.fitness;
+        {
+            Individual elite = best_individual(&pop);
+            next_pop.individuals[0].hospitals =
+                malloc(town_count * sizeof(Hospital));
+            next_pop.individuals[0].size = elite.size;
+            memcpy(next_pop.individuals[0].hospitals,
+                   elite.hospitals,
+                   elite.size * sizeof(Hospital));
+            next_pop.individuals[0].fitness = elite.fitness;
+        }
 
         for (i = 1; i < POPULATION_SIZE; i++)
         {
             Individual p1 = tournament_select(&pop);
             Individual p2 = tournament_select(&pop);
             next_pop.individuals[i] = crossover(&p1, &p2, town_count);
-            mutate(&next_pop.individuals[i], towns, town_count, current_mutation_rate,
-                   coverage, coverage_size, insee_to_idx);
+            mutate(&next_pop.individuals[i], towns, town_count,
+                   current_mutation_rate, coverage, coverage_size, insee_to_idx);
             remove_redundant(&next_pop.individuals[i], coverage, coverage_size,
                              insee_to_idx, town_count);
         }
 
         free_population(&pop);
         pop = next_pop;
-        evaluate_population(&pop, towns, town_count, insee_to_idx, coverage, coverage_size, total_inhabitants);
+        evaluate_population(&pop, towns, town_count, insee_to_idx,
+                            coverage, coverage_size, total_inhabitants);
     }
 
     /* Copy the best solution before freeing the population */
-
-    Individual b = best_individual(&pop);
-    result.hospitals = malloc(town_count * sizeof(Hospital)); /* town_count: upper bound for local search */
-    result.size = b.size;
-    result.fitness = b.fitness;
-    memcpy(result.hospitals, b.hospitals, b.size * sizeof(Hospital));
-
+    {
+        Individual b = best_individual(&pop);
+        result.hospitals = malloc(town_count * sizeof(Hospital));
+        result.size = b.size;
+        result.fitness = b.fitness;
+        memcpy(result.hospitals, b.hospitals, b.size * sizeof(Hospital));
+    }
     free_population(&pop);
 
-    /* Local search: greedily add hospitals as long as the coverage gain > penalty */
     printf("Running local search...\n");
-    {
-        int improved = 1;
-        int i, k;
-        while (improved)
-        {
-            improved = 0;
-            int *cover_count = calloc(town_count, sizeof(int));
-
-            for (i = 0; i < result.size; i++)
-            {
-                int j = insee_to_idx[result.hospitals[i].insee];
-                if (j >= 0)
-                    for (k = 0; k < coverage_size[j]; k++)
-                        cover_count[coverage[j][k]]++;
-            }
-
-            for (i = 0; i < town_count; i++)
-            {
-                if (cover_count[i] > 0)
-                    continue;
-                /* Count inhabitants newly covered by a hospital at town i */
-                int gain = 0;
-                for (k = 0; k < coverage_size[i]; k++)
-                    if (cover_count[coverage[i][k]] == 0)
-                        gain += towns[coverage[i][k]].inhabitants_count;
-                if (gain > PENALTY_HOSPITAL)
-                {
-                    result.hospitals[result.size].insee = towns[i].insee;
-                    result.hospitals[result.size].beds_count = 0;
-                    result.size++;
-                    for (k = 0; k < coverage_size[i]; k++)
-                        cover_count[coverage[i][k]]++;
-                    improved = 1;
-                }
-            }
-            free(cover_count);
-        }
-    }
+    local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
     printf("Local search done.\n");
 
-    /* Recompute fitness statistics — local search added hospitals but did
-       not update result.fitness, so all printed/exported numbers below
-       would otherwise reflect the pre-local-search state. */
     evaluate(&result, towns, town_count, insee_to_idx, coverage,
              coverage_size, total_inhabitants);
 
-    /* Compute beds per hospital (post-optimization) */
     compute_beds(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
 
     printf("\n=== Final result: %d hospitals ===\n", result.size);
 
-    int total_beds = 0;
-    int covered_inhabitants = total_inhabitants - result.fitness.distant_resident_count;
+    total_beds = 0;
+    covered_inhabitants = total_inhabitants - result.fitness.distant_resident_count;
     for (i = 0; i < result.size; i++)
         total_beds += result.hospitals[i].beds_count;
     printf("Total beds: %d\n", total_beds);
@@ -355,76 +239,28 @@ Individual run_genetic(Town *towns, int town_count)
 
     if (covered_inhabitants > 0)
         printf("Beds per 1000 covered inhabitants: %.2f (target: %.2f)\n",
-               (double)total_beds / (covered_inhabitants / 1000.0), BEDS_PER_INHABITANT);
+               (double)total_beds / (covered_inhabitants / 1000.0),
+               BEDS_PER_INHABITANT);
 
     export_result_csv(&result, towns, insee_to_idx, "./src/results/hospitals.csv");
     export_fitness_csv(&result.fitness, "./src/results/fitness.csv");
     export_towns_status_csv(&result, towns, town_count, insee_to_idx, coverage,
                             coverage_size, "./src/results/towns_status.csv");
 
+    covered_overlay = calloc(town_count, 1);
+    compute_covered(covered_overlay, &result, town_count,
+                    insee_to_idx, coverage, coverage_size);
+    map_draw_final(&view, towns, town_count, &result, insee_to_idx,
+                   covered_overlay, total_beds);
+    free(covered_overlay);
+
+    map_close(&view);
+
     for (i = 0; i < town_count; i++)
         free(coverage[i]);
     free(coverage);
     free(coverage_size);
     free(insee_to_idx);
-
-#ifdef USE_MLV
-    {
-        int mlv_j, mlv_idx, mlv_sx, mlv_tx, mlv_ty;
-        mlv_sx = mlv_padding * 2 + (int)((mlv_box.max_lon - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat);
-        mlv_tx = mlv_sx + mlv_padding;
-        MLV_clear_window(MLV_COLOR_BLACK);
-        for (mlv_j = 0; mlv_j < town_count; mlv_j++)
-            MLV_draw_filled_circle(
-                mlv_padding + (int)((towns[mlv_j].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                mlv_height - mlv_padding - (int)((towns[mlv_j].latitude - mlv_box.min_lat) * mlv_ratio),
-                1,
-                PANACEE_COLOR_ORANGE);
-        for (mlv_j = 0; mlv_j < result.size; mlv_j++)
-        {
-            mlv_idx = insee_to_idx[result.hospitals[mlv_j].insee];
-            if (mlv_idx >= 0)
-            {
-                MLV_Color mlv_color = towns[mlv_idx].inhabitants_count > THRESHOLD_UHC
-                    ? PANACEE_COLOR_BLUE
-                    : PANACEE_COLOR_GREEN;
-                MLV_draw_filled_circle(
-                    mlv_padding + (int)((towns[mlv_idx].longitude - mlv_box.min_lon) * mlv_ratio * mlv_cos_lat),
-                    mlv_height - mlv_padding - (int)((towns[mlv_idx].latitude - mlv_box.min_lat) * mlv_ratio),
-                    5,
-                    mlv_color);
-            }
-        }
-        MLV_draw_line(mlv_sx, 0, mlv_sx, mlv_height, MLV_COLOR_WHITE);
-        mlv_ty = mlv_padding;
-        MLV_draw_text(mlv_tx, mlv_ty, "Resultat final", MLV_COLOR_WHITE);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "Hopitaux         : %d", MLV_COLOR_WHITE, result.fitness.hospital_count);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "CHRU             : %d", MLV_COLOR_WHITE, result.fitness.uhc_count);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "Habitants eloignes : %d", MLV_COLOR_WHITE,
-                      result.fitness.distant_resident_count);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "%% pop desert     : %.2f", MLV_COLOR_WHITE,
-                      result.fitness.distant_resident_percent);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "Villes eloignees : %d", MLV_COLOR_WHITE,
-                      result.fitness.distant_town_count);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "%% communes desert: %.2f", MLV_COLOR_WHITE,
-                      result.fitness.distant_town_percent);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "FITNESS          : %.0f", MLV_COLOR_WHITE, result.fitness.fitness_score);
-        mlv_ty += 30;
-        MLV_draw_text(mlv_tx, mlv_ty, "Lits totaux      : %d", MLV_COLOR_WHITE, total_beds);
-        mlv_ty += 60;
-        MLV_draw_text(mlv_tx, mlv_ty, "Touche pour quitter...", MLV_COLOR_WHITE);
-        MLV_actualise_window();
-        MLV_wait_keyboard(NULL, NULL, NULL);
-        MLV_free_window();
-    }
-#endif
 
     return result;
 }
