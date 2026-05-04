@@ -48,8 +48,15 @@ void precompute_coverage(Town *towns, int town_count, int ***coverage, int **cov
                              towns[j].latitude, towns[j].longitude) <= RADIUS_HOSPITAL_KM)
                 tmp[cnt++] = j;
         }
-        (*coverage)[i] = malloc(cnt * sizeof(int));
-        memcpy((*coverage)[i], tmp, cnt * sizeof(int));
+        if (cnt > 0)
+        {
+            (*coverage)[i] = malloc(cnt * sizeof(int));
+            memcpy((*coverage)[i], tmp, cnt * sizeof(int));
+        }
+        else
+        {
+            (*coverage)[i] = NULL;
+        }
         (*coverage_size)[i] = cnt;
     }
     free(tmp);
