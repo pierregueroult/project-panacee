@@ -312,6 +312,8 @@ Individual run_genetic(Town *towns, int town_count)
 
     export_result_csv(&result, towns, insee_to_idx, "./src/results/hospitals.csv");
     export_fitness_csv(&result.fitness, "./src/results/fitness.csv");
+    export_towns_status_csv(&result, towns, town_count, insee_to_idx, coverage,
+                            coverage_size, "./src/results/towns_status.csv");
 
     for (i = 0; i < town_count; i++)
         free(coverage[i]);

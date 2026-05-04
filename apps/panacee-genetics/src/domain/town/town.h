@@ -6,6 +6,9 @@
 typedef struct
 {
     int insee;
+    char name[64];
+    char department_code[4];
+    char department_name[48];
     double latitude;
     double longitude;
     int inhabitants_count;
