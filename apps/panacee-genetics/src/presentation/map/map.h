@@ -10,6 +10,6 @@ typedef struct {
     double max_lon;
 } BoundingBox;
 
-BoundingBox getBoundingBox(Town *towns, int count);
+BoundingBox get_bounding_box(const Town *towns, int count);
 
 #endif

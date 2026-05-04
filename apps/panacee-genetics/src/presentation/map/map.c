@@ -1,6 +1,6 @@
 #include "map.h"
 
-BoundingBox getBoundingBox(Town *towns, int count)
+BoundingBox get_bounding_box(const Town *towns, int count)
 {
     BoundingBox box;
     int i;

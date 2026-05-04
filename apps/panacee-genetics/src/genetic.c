@@ -60,7 +60,7 @@ Individual run_genetic(Town *towns, int town_count)
 
 #ifdef USE_MLV
     color_init();
-    mlv_box = getBoundingBox(towns, town_count);
+    mlv_box = get_bounding_box(towns, town_count);
     mlv_height = (int)(MLV_get_desktop_height() * 0.8);
     mlv_sidebar_width = 300;
     mlv_padding = (int)(mlv_height * 0.05);
