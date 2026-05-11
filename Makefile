@@ -5,8 +5,8 @@ PIP := $(PY) -m pip
 
 CURDIR := $(shell pwd)
 
-DOCS_DIR := $(CURDIR)/apps/panacee-documents
-DOCS_REQ := $(DOCS_DIR)/requirement.txt
+DOCS_DIR := $(CURDIR)/apps/panacee-pdf-generator
+VENV_PY := $(DOCS_DIR)/.venv/bin/python
 
 GEN_DIR := $(CURDIR)/apps/panacee-genetics
 GEN_BIN := $(GEN_DIR)/panacee
@@ -27,8 +27,10 @@ help:
 	@echo "  re           - fclean then build"
 
 init:
-	@echo "==> Installing Python dependencies from $(DOCS_REQ)"
-	@$(PIP) install -r "$(DOCS_REQ)"
+	@echo "==> Creating virtualenv in $(DOCS_DIR)/.venv"
+	@python3 -m venv "$(DOCS_DIR)/.venv"
+	@echo "==> Installing Python dependencies"
+	@"$(DOCS_DIR)/.venv/bin/pip" install "$(DOCS_DIR)"
 
 build:
 	@echo "==> Building C application in $(GEN_DIR)"
@@ -42,7 +44,7 @@ run: build
 	@echo "==> Starting C binary"
 	@cd $(GEN_DIR) && ./panacee; \
 	echo "==> Starting Python application"; \
-	$(PY) "$(DOCS_DIR)/main.py"; \
+	$(VENV_PY) "$(DOCS_DIR)/src/main.py"; \
 
 run-no-mlv: build-no-mlv
 	@echo "==> Starting C binary (no-mlv)"
