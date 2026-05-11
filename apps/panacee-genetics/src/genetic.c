@@ -293,18 +293,24 @@ Individual run_genetic(const Town *towns, int town_count)
             }
         }
 
-        for (i = ELITE_COUNT; i < POPULATION_SIZE; i++)
         {
-            Individual p1 = tournament_select(&pop);
-            Individual p2 = tournament_select(&pop);
-            next_pop.individuals[i] = crossover(&p1, &p2, town_count);
-            mutate(&next_pop.individuals[i], towns, town_count,
-                   current_mutation_rate, coverage, coverage_size, insee_to_idx);
-            remove_redundant(&next_pop.individuals[i], coverage, coverage_size,
-                             insee_to_idx, town_count);
-            local_search(&next_pop.individuals[i], towns, town_count,
-                         insee_to_idx, coverage, coverage_size,
-                         LOCAL_SEARCH_CHILD_ITER);
+            int effective_k = TOURNAMENT_K +
+                (gen * (TOURNAMENT_K_MAX - TOURNAMENT_K)) / MAX_GENERATIONS;
+
+            for (i = ELITE_COUNT; i < POPULATION_SIZE; i++)
+            {
+                Individual p1 = tournament_select(&pop, effective_k);
+                Individual p2 = tournament_select(&pop, effective_k);
+                next_pop.individuals[i] = crossover(&p1, &p2, town_count);
+                mutate(&next_pop.individuals[i], towns, town_count,
+                       current_mutation_rate, coverage, coverage_size,
+                       insee_to_idx);
+                remove_redundant(&next_pop.individuals[i], coverage,
+                                 coverage_size, insee_to_idx, town_count);
+                local_search(&next_pop.individuals[i], towns, town_count,
+                             insee_to_idx, coverage, coverage_size,
+                             LOCAL_SEARCH_CHILD_ITER);
+            }
         }
 
         free_population(&pop);

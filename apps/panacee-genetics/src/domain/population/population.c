@@ -31,11 +31,11 @@ void free_population(Population *pop)
     pop->size = 0;
 }
 
-Individual tournament_select(const Population *pop)
+Individual tournament_select(const Population *pop, int k)
 {
     int i, index;
     int best_index = rand() % pop->size;
-    for (i = 1; i < TOURNAMENT_K; i++)
+    for (i = 1; i < k; i++)
     {
         index = rand() % pop->size;
         if (pop->individuals[index].fitness.fitness_score >

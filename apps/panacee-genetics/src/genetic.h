@@ -15,6 +15,7 @@
 #define POPULATION_SIZE 50       /* number of individuals in the population     */
 #define ELITE_COUNT 3            /* top-N carried unchanged to next generation  */
 #define TOURNAMENT_K 3           /* ~6% of pop: low pressure, good diversity    */
+#define TOURNAMENT_K_MAX 7       /* late-stage pressure, focus on exploitation  */
 #define MUTATION_RATE 0.15       /* initial mutation probability per individual */
 #define MUTATION_RATE_MAX 0.60   /* upper bound when stagnation grows           */
 #define LOCAL_SEARCH_CHILD_ITER 2 /* local-search passes per child (memetic)    */
