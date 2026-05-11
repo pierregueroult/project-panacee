@@ -314,9 +314,39 @@ void mutate(Individual *ind, const Town *towns, int town_count,
     }
     else if (op == 1 && ind->size > 1)
     {
-        /* Remove a random hospital */
-        idx = rand() % ind->size;
-        ind->hospitals[idx] = ind->hospitals[--ind->size];
+        /* Remove the hospital with the smallest exclusive coverage
+           (fewest inhabitants that would become uncovered). */
+        int *cover_count = calloc(town_count, sizeof(int));
+        int worst = -1;
+        int worst_exclusive = -1;
+        int h;
+
+        for (h = 0; h < ind->size; h++)
+        {
+            int j = insee_to_idx[ind->hospitals[h].insee];
+            if (j >= 0)
+                for (k = 0; k < coverage_size[j]; k++)
+                    cover_count[coverage[j][k]]++;
+        }
+
+        for (h = 0; h < ind->size; h++)
+        {
+            int j = insee_to_idx[ind->hospitals[h].insee];
+            int exclusive = 0;
+            if (j >= 0)
+                for (k = 0; k < coverage_size[j]; k++)
+                    if (cover_count[coverage[j][k]] == 1)
+                        exclusive += towns[coverage[j][k]].inhabitants_count;
+            if (worst < 0 || exclusive < worst_exclusive)
+            {
+                worst_exclusive = exclusive;
+                worst = h;
+            }
+        }
+
+        if (worst >= 0)
+            ind->hospitals[worst] = ind->hospitals[--ind->size];
+        free(cover_count);
     }
     else
     {
