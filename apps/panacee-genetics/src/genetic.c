@@ -2,6 +2,7 @@
 #include "infrastructure/exporter/exporter.h"
 #include "presentation/map/map.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,18 +47,21 @@ static void compute_covered(char *covered,
 
 static void local_search(Individual *result, const Town *towns, int town_count,
                          const int *insee_to_idx,
-                         int **coverage, const int *coverage_size)
+                         int **coverage, const int *coverage_size,
+                         int max_iter)
 {
     int improved = 1;
     int i, k;
+    int iter = 0;
 
-    while (improved)
+    while (improved && iter < max_iter)
     {
         int *cover_count = calloc(town_count, sizeof(int));
         int best = -1;
         int best_gain = 0;
 
         improved = 0;
+        iter++;
         for (i = 0; i < result->size; i++)
         {
             int j = insee_to_idx[result->hospitals[i].insee];
@@ -241,6 +245,9 @@ Individual run_genetic(const Town *towns, int town_count)
                    current_mutation_rate, coverage, coverage_size, insee_to_idx);
             remove_redundant(&next_pop.individuals[i], coverage, coverage_size,
                              insee_to_idx, town_count);
+            local_search(&next_pop.individuals[i], towns, town_count,
+                         insee_to_idx, coverage, coverage_size,
+                         LOCAL_SEARCH_CHILD_ITER);
         }
 
         free_population(&pop);
@@ -260,7 +267,8 @@ Individual run_genetic(const Town *towns, int town_count)
     free_population(&pop);
 
     printf("Running local search...\n");
-    local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
+    local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size,
+                 INT_MAX);
     printf("Local search done.\n");
 
     evaluate(&result, towns, town_count, insee_to_idx, coverage,
