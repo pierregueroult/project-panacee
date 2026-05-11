@@ -4,18 +4,18 @@
 /* Initialize population: 80% greedy individuals for a strong start,
    20% random for diversity. */
 Population init_population(const Town *towns, int town_count,
-                           int **coverage, const int *coverage_size)
+                           int **coverage, const int *coverage_size, int size)
 {
     int i;
     Population pop;
-    int greedy_count = POPULATION_SIZE * 4 / 5;
+    int greedy_count = size * 4 / 5;
 
-    pop.size = POPULATION_SIZE;
-    pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
+    pop.size = size;
+    pop.individuals = malloc(size * sizeof(Individual));
 
     for (i = 0; i < greedy_count; i++)
         pop.individuals[i] = create_individual_greedy(towns, town_count, coverage, coverage_size);
-    for (i = greedy_count; i < POPULATION_SIZE; i++)
+    for (i = greedy_count; i < size; i++)
         pop.individuals[i] = create_individual_random(towns, town_count);
 
     return pop;

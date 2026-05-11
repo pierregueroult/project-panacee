@@ -12,8 +12,12 @@
 #define TOTAL_INHABITANTS 65141355  /* INSEE 2025: France metropolitaine sans Corse */
 #define BEDS_PER_INHABITANT 5.40 /* target: beds per 1000 covered inhabitants   */
 #define INIT_HOSPITAL_RATIO 0.05 /* ~5% of towns have a hospital at init        */
-#define POPULATION_SIZE 50       /* number of individuals in the population     */
-#define ELITE_COUNT 3            /* top-N carried unchanged to next generation  */
+#define ISLAND_COUNT 4           /* parallel sub-populations                    */
+#define ISLAND_SIZE  12          /* individuals per island                      */
+#define ISLAND_ELITE 1           /* top-N carried unchanged inside each island  */
+#define MIGRATION_INTERVAL 50    /* generations between migration rounds        */
+#define MIGRATION_COUNT 2        /* individuals shipped from each island        */
+#define POPULATION_SIZE (ISLAND_COUNT * ISLAND_SIZE)
 #define TOURNAMENT_K 3           /* ~6% of pop: low pressure, good diversity    */
 #define TOURNAMENT_K_MAX 7       /* late-stage pressure, focus on exploitation  */
 #define MUTATION_RATE 0.15       /* initial mutation probability per individual */

@@ -115,13 +115,13 @@ static void init_seed(void)
 
 Individual run_genetic(const Town *towns, int town_count)
 {
-    int gen, i;
+    int gen, i, isl;
     int stagnation = 0;
     int restarts = 0;
     double prev_best = -1;
     double current_mutation_rate = MUTATION_RATE;
     Individual result;
-    Population pop, next_pop;
+    Population islands[ISLAND_COUNT];
     int *insee_to_idx;
     int **coverage;
     int *coverage_size;
@@ -149,18 +149,32 @@ Individual run_genetic(const Town *towns, int town_count)
                     data_total, TOTAL_INHABITANTS);
     }
 
-    map_draw_loading(&view, towns, town_count, "Initialisation de la population...");
-    pop = init_population(towns, town_count, coverage, coverage_size);
+    map_draw_loading(&view, towns, town_count, "Initialisation des iles...");
+    for (isl = 0; isl < ISLAND_COUNT; isl++)
+        islands[isl] = init_population(towns, town_count,
+                                       coverage, coverage_size, ISLAND_SIZE);
 
     map_draw_loading(&view, towns, town_count, "Evaluation de la generation initiale...");
-    evaluate_population(&pop, towns, town_count, insee_to_idx, coverage,
-                        coverage_size, total_inhabitants);
+    for (isl = 0; isl < ISLAND_COUNT; isl++)
+        evaluate_population(&islands[isl], towns, town_count, insee_to_idx,
+                            coverage, coverage_size, total_inhabitants);
 
     for (gen = 0; gen < MAX_GENERATIONS; gen++)
     {
-        Individual current_best = best_individual(&pop);
-        double best_score = current_best.fitness.fitness_score;
-        int improved = best_score > prev_best;
+        Individual current_best;
+        double best_score;
+        int improved;
+
+        /* Global best across all islands */
+        current_best = best_individual(&islands[0]);
+        for (isl = 1; isl < ISLAND_COUNT; isl++)
+        {
+            Individual b = best_individual(&islands[isl]);
+            if (b.fitness.fitness_score > current_best.fitness.fitness_score)
+                current_best = b;
+        }
+        best_score = current_best.fitness.fitness_score;
+        improved = best_score > prev_best;
 
         if (improved || gen % PROGRESS_INTERVAL == 0)
             printf("Gen %4d | fitness: %.0f | hop: %d | CHRU: %d | desert: %d (%.1f%%)\n",
@@ -200,50 +214,64 @@ Individual run_genetic(const Town *towns, int town_count)
                 break;
             }
 
-            /* Perturbed restart: keep the elite, seed a few perturbed clones,
-               replace the rest with a fresh init_population. */
+            /* Perturbed restart: keep the global elite, seed perturbed clones
+               in island 0, and replace every island with a fresh init. */
             {
                 Individual elite_copy;
+                int best_isl = 0;
                 int best_idx = 0;
                 int c, m;
 
-                for (i = 1; i < pop.size; i++)
-                    if (pop.individuals[i].fitness.fitness_score >
-                        pop.individuals[best_idx].fitness.fitness_score)
-                        best_idx = i;
+                for (isl = 0; isl < ISLAND_COUNT; isl++)
+                    for (i = 0; i < islands[isl].size; i++)
+                        if (islands[isl].individuals[i].fitness.fitness_score >
+                            islands[best_isl].individuals[best_idx].fitness.fitness_score)
+                        {
+                            best_isl = isl;
+                            best_idx = i;
+                        }
 
                 elite_copy.hospitals = malloc(town_count * sizeof(Hospital));
-                elite_copy.size = pop.individuals[best_idx].size;
+                elite_copy.size = islands[best_isl].individuals[best_idx].size;
                 memcpy(elite_copy.hospitals,
-                       pop.individuals[best_idx].hospitals,
+                       islands[best_isl].individuals[best_idx].hospitals,
                        elite_copy.size * sizeof(Hospital));
-                elite_copy.fitness = pop.individuals[best_idx].fitness;
+                elite_copy.fitness =
+                    islands[best_isl].individuals[best_idx].fitness;
 
-                free_population(&pop);
-                pop = init_population(towns, town_count,
-                                      coverage, coverage_size);
-
-                /* Slot 0: untouched elite */
-                free_individual(&pop.individuals[0]);
-                pop.individuals[0] = elite_copy;
-
-                /* Slots 1..PERTURB_CLONES: forced high-amplitude mutations */
-                for (c = 1; c <= PERTURB_CLONES && c < pop.size; c++)
+                for (isl = 0; isl < ISLAND_COUNT; isl++)
                 {
-                    free_individual(&pop.individuals[c]);
-                    pop.individuals[c].hospitals =
-                        malloc(town_count * sizeof(Hospital));
-                    pop.individuals[c].size = elite_copy.size;
-                    memcpy(pop.individuals[c].hospitals, elite_copy.hospitals,
-                           elite_copy.size * sizeof(Hospital));
-                    memset(&pop.individuals[c].fitness, 0, sizeof(Fitness));
-                    for (m = 0; m < PERTURB_MUTATIONS; m++)
-                        mutate(&pop.individuals[c], towns, town_count, 1.0,
-                               coverage, coverage_size, insee_to_idx);
+                    free_population(&islands[isl]);
+                    islands[isl] = init_population(towns, town_count,
+                                                   coverage, coverage_size,
+                                                   ISLAND_SIZE);
                 }
 
-                evaluate_population(&pop, towns, town_count, insee_to_idx,
-                                    coverage, coverage_size, total_inhabitants);
+                /* Island 0 slot 0: untouched elite */
+                free_individual(&islands[0].individuals[0]);
+                islands[0].individuals[0] = elite_copy;
+
+                /* Island 0 slots 1..PERTURB_CLONES: forced mutations on elite */
+                for (c = 1; c <= PERTURB_CLONES && c < islands[0].size; c++)
+                {
+                    free_individual(&islands[0].individuals[c]);
+                    islands[0].individuals[c].hospitals =
+                        malloc(town_count * sizeof(Hospital));
+                    islands[0].individuals[c].size = elite_copy.size;
+                    memcpy(islands[0].individuals[c].hospitals,
+                           elite_copy.hospitals,
+                           elite_copy.size * sizeof(Hospital));
+                    memset(&islands[0].individuals[c].fitness, 0,
+                           sizeof(Fitness));
+                    for (m = 0; m < PERTURB_MUTATIONS; m++)
+                        mutate(&islands[0].individuals[c], towns, town_count,
+                               1.0, coverage, coverage_size, insee_to_idx);
+                }
+
+                for (isl = 0; isl < ISLAND_COUNT; isl++)
+                    evaluate_population(&islands[isl], towns, town_count,
+                                        insee_to_idx, coverage, coverage_size,
+                                        total_inhabitants);
             }
 
             restarts++;
@@ -260,74 +288,157 @@ Individual run_genetic(const Town *towns, int town_count)
                        current_best.fitness.fitness_average,
                        stagnation == 0);
 
-        /* Build next generation */
-        next_pop.size = POPULATION_SIZE;
-        next_pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
-
-        /* Elitism: carry the top ELITE_COUNT individuals unchanged */
+        /* Migration: ring topology, send MIGRATION_COUNT best from each
+           island to the next, replacing that island's worst. */
+        if (gen > 0 && gen % MIGRATION_INTERVAL == 0)
         {
-            char used[POPULATION_SIZE];
-            int e, idx;
-            memset(used, 0, sizeof(used));
-            for (e = 0; e < ELITE_COUNT; e++)
-            {
-                int best_idx = -1;
-                for (idx = 0; idx < POPULATION_SIZE; idx++)
-                {
-                    if (used[idx]) continue;
-                    if (best_idx < 0 ||
-                        pop.individuals[idx].fitness.fitness_score >
-                        pop.individuals[best_idx].fitness.fitness_score)
-                        best_idx = idx;
-                }
-                used[best_idx] = 1;
+            Individual migrants[ISLAND_COUNT][MIGRATION_COUNT];
+            int m;
 
-                next_pop.individuals[e].hospitals =
-                    malloc(town_count * sizeof(Hospital));
-                next_pop.individuals[e].size = pop.individuals[best_idx].size;
-                memcpy(next_pop.individuals[e].hospitals,
-                       pop.individuals[best_idx].hospitals,
-                       pop.individuals[best_idx].size * sizeof(Hospital));
-                next_pop.individuals[e].fitness =
-                    pop.individuals[best_idx].fitness;
+            for (isl = 0; isl < ISLAND_COUNT; isl++)
+            {
+                char used[ISLAND_SIZE];
+                memset(used, 0, sizeof(used));
+                for (m = 0; m < MIGRATION_COUNT; m++)
+                {
+                    int best_idx = -1;
+                    int idx;
+                    for (idx = 0; idx < ISLAND_SIZE; idx++)
+                    {
+                        if (used[idx]) continue;
+                        if (best_idx < 0 ||
+                            islands[isl].individuals[idx].fitness.fitness_score >
+                            islands[isl].individuals[best_idx].fitness.fitness_score)
+                            best_idx = idx;
+                    }
+                    used[best_idx] = 1;
+
+                    migrants[isl][m].hospitals =
+                        malloc(town_count * sizeof(Hospital));
+                    migrants[isl][m].size =
+                        islands[isl].individuals[best_idx].size;
+                    memcpy(migrants[isl][m].hospitals,
+                           islands[isl].individuals[best_idx].hospitals,
+                           migrants[isl][m].size * sizeof(Hospital));
+                    migrants[isl][m].fitness =
+                        islands[isl].individuals[best_idx].fitness;
+                }
+            }
+
+            for (isl = 0; isl < ISLAND_COUNT; isl++)
+            {
+                int dest = (isl + 1) % ISLAND_COUNT;
+                char used[ISLAND_SIZE];
+                memset(used, 0, sizeof(used));
+                for (m = 0; m < MIGRATION_COUNT; m++)
+                {
+                    int worst_idx = -1;
+                    int idx;
+                    for (idx = 0; idx < ISLAND_SIZE; idx++)
+                    {
+                        if (used[idx]) continue;
+                        if (worst_idx < 0 ||
+                            islands[dest].individuals[idx].fitness.fitness_score <
+                            islands[dest].individuals[worst_idx].fitness.fitness_score)
+                            worst_idx = idx;
+                    }
+                    used[worst_idx] = 1;
+
+                    free_individual(&islands[dest].individuals[worst_idx]);
+                    islands[dest].individuals[worst_idx] = migrants[isl][m];
+                }
             }
         }
 
+        /* Evolve each island independently */
         {
             int effective_k = TOURNAMENT_K +
                 (gen * (TOURNAMENT_K_MAX - TOURNAMENT_K)) / MAX_GENERATIONS;
 
-            for (i = ELITE_COUNT; i < POPULATION_SIZE; i++)
+            for (isl = 0; isl < ISLAND_COUNT; isl++)
             {
-                Individual p1 = tournament_select(&pop, effective_k);
-                Individual p2 = tournament_select(&pop, effective_k);
-                next_pop.individuals[i] = crossover(&p1, &p2, town_count);
-                mutate(&next_pop.individuals[i], towns, town_count,
-                       current_mutation_rate, coverage, coverage_size,
-                       insee_to_idx);
-                remove_redundant(&next_pop.individuals[i], coverage,
-                                 coverage_size, insee_to_idx, town_count);
-                local_search(&next_pop.individuals[i], towns, town_count,
-                             insee_to_idx, coverage, coverage_size,
-                             LOCAL_SEARCH_CHILD_ITER);
+                Population *src = &islands[isl];
+                Population next_island;
+                char used[ISLAND_SIZE];
+                int e, idx;
+
+                next_island.size = ISLAND_SIZE;
+                next_island.individuals =
+                    malloc(ISLAND_SIZE * sizeof(Individual));
+
+                /* Per-island elitism */
+                memset(used, 0, sizeof(used));
+                for (e = 0; e < ISLAND_ELITE; e++)
+                {
+                    int best_idx = -1;
+                    for (idx = 0; idx < ISLAND_SIZE; idx++)
+                    {
+                        if (used[idx]) continue;
+                        if (best_idx < 0 ||
+                            src->individuals[idx].fitness.fitness_score >
+                            src->individuals[best_idx].fitness.fitness_score)
+                            best_idx = idx;
+                    }
+                    used[best_idx] = 1;
+
+                    next_island.individuals[e].hospitals =
+                        malloc(town_count * sizeof(Hospital));
+                    next_island.individuals[e].size =
+                        src->individuals[best_idx].size;
+                    memcpy(next_island.individuals[e].hospitals,
+                           src->individuals[best_idx].hospitals,
+                           src->individuals[best_idx].size * sizeof(Hospital));
+                    next_island.individuals[e].fitness =
+                        src->individuals[best_idx].fitness;
+                }
+
+                for (i = ISLAND_ELITE; i < ISLAND_SIZE; i++)
+                {
+                    Individual p1 = tournament_select(src, effective_k);
+                    Individual p2 = tournament_select(src, effective_k);
+                    next_island.individuals[i] =
+                        crossover(&p1, &p2, town_count);
+                    mutate(&next_island.individuals[i], towns, town_count,
+                           current_mutation_rate, coverage, coverage_size,
+                           insee_to_idx);
+                    remove_redundant(&next_island.individuals[i], coverage,
+                                     coverage_size, insee_to_idx, town_count);
+                    local_search(&next_island.individuals[i], towns, town_count,
+                                 insee_to_idx, coverage, coverage_size,
+                                 LOCAL_SEARCH_CHILD_ITER);
+                }
+
+                free_population(src);
+                *src = next_island;
+                evaluate_population(src, towns, town_count, insee_to_idx,
+                                    coverage, coverage_size, total_inhabitants);
             }
         }
-
-        free_population(&pop);
-        pop = next_pop;
-        evaluate_population(&pop, towns, town_count, insee_to_idx,
-                            coverage, coverage_size, total_inhabitants);
     }
 
-    /* Copy the best solution before freeing the population */
+    /* Copy the global best solution before freeing all islands */
     {
-        Individual b = best_individual(&pop);
+        int best_isl = 0;
+        int best_idx = 0;
+
+        for (isl = 0; isl < ISLAND_COUNT; isl++)
+            for (i = 0; i < islands[isl].size; i++)
+                if (islands[isl].individuals[i].fitness.fitness_score >
+                    islands[best_isl].individuals[best_idx].fitness.fitness_score)
+                {
+                    best_isl = isl;
+                    best_idx = i;
+                }
+
         result.hospitals = malloc(town_count * sizeof(Hospital));
-        result.size = b.size;
-        result.fitness = b.fitness;
-        memcpy(result.hospitals, b.hospitals, b.size * sizeof(Hospital));
+        result.size = islands[best_isl].individuals[best_idx].size;
+        result.fitness = islands[best_isl].individuals[best_idx].fitness;
+        memcpy(result.hospitals,
+               islands[best_isl].individuals[best_idx].hospitals,
+               result.size * sizeof(Hospital));
     }
-    free_population(&pop);
+    for (isl = 0; isl < ISLAND_COUNT; isl++)
+        free_population(&islands[isl]);
 
     printf("Running local search...\n");
     local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size,
