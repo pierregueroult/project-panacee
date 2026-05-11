@@ -13,6 +13,7 @@
 #define BEDS_PER_INHABITANT 5.40 /* target: beds per 1000 covered inhabitants   */
 #define INIT_HOSPITAL_RATIO 0.05 /* ~5% of towns have a hospital at init        */
 #define POPULATION_SIZE 50       /* number of individuals in the population     */
+#define ELITE_COUNT 3            /* top-N carried unchanged to next generation  */
 #define TOURNAMENT_K 3           /* ~6% of pop: low pressure, good diversity    */
 #define MUTATION_RATE 0.15       /* initial mutation probability per individual */
 #define MUTATION_RATE_MAX 0.60   /* upper bound when stagnation grows           */

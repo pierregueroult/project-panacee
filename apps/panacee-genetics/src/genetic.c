@@ -203,19 +203,36 @@ Individual run_genetic(const Town *towns, int town_count)
         next_pop.size = POPULATION_SIZE;
         next_pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
 
-        /* Elitism: carry the best individual unchanged into the next generation */
+        /* Elitism: carry the top ELITE_COUNT individuals unchanged */
         {
-            Individual elite = best_individual(&pop);
-            next_pop.individuals[0].hospitals =
-                malloc(town_count * sizeof(Hospital));
-            next_pop.individuals[0].size = elite.size;
-            memcpy(next_pop.individuals[0].hospitals,
-                   elite.hospitals,
-                   elite.size * sizeof(Hospital));
-            next_pop.individuals[0].fitness = elite.fitness;
+            char used[POPULATION_SIZE];
+            int e, idx;
+            memset(used, 0, sizeof(used));
+            for (e = 0; e < ELITE_COUNT; e++)
+            {
+                int best_idx = -1;
+                for (idx = 0; idx < POPULATION_SIZE; idx++)
+                {
+                    if (used[idx]) continue;
+                    if (best_idx < 0 ||
+                        pop.individuals[idx].fitness.fitness_score >
+                        pop.individuals[best_idx].fitness.fitness_score)
+                        best_idx = idx;
+                }
+                used[best_idx] = 1;
+
+                next_pop.individuals[e].hospitals =
+                    malloc(town_count * sizeof(Hospital));
+                next_pop.individuals[e].size = pop.individuals[best_idx].size;
+                memcpy(next_pop.individuals[e].hospitals,
+                       pop.individuals[best_idx].hospitals,
+                       pop.individuals[best_idx].size * sizeof(Hospital));
+                next_pop.individuals[e].fitness =
+                    pop.individuals[best_idx].fitness;
+            }
         }
 
-        for (i = 1; i < POPULATION_SIZE; i++)
+        for (i = ELITE_COUNT; i < POPULATION_SIZE; i++)
         {
             Individual p1 = tournament_select(&pop);
             Individual p2 = tournament_select(&pop);
