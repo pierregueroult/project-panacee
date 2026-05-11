@@ -160,54 +160,67 @@ void free_individual(Individual *ind)
     ind->size = 0;
 }
 
-/* Create a child by merging two parents' hospital lists and sampling a random subset */
+/* Create a child by always keeping the parents' intersection and filling the
+   remaining slots with a random sample of the symmetric difference. */
 Individual crossover(const Individual *a, const Individual *b, int town_count)
 {
     int i;
     Individual child;
     /* INSEE codes are at most 5 digits (max 99999) */
-    char *present = calloc(INSEE_MAX, 1);
-    Hospital *pool = malloc((a->size + b->size) * sizeof(Hospital));
-    int pool_n = 0;
-    int target_size;
+    unsigned char *count = calloc(INSEE_MAX, 1);
+    int min_size = a->size < b->size ? a->size : b->size;
+    Hospital *intersection = malloc(min_size * sizeof(Hospital));
+    Hospital *symdiff = malloc((a->size + b->size) * sizeof(Hospital));
+    int int_n = 0;
+    int sym_n = 0;
+    int lo, hi, target_size, extras;
 
     for (i = 0; i < a->size; i++)
-        if (!present[a->hospitals[i].insee])
-        {
-            present[a->hospitals[i].insee] = 1;
-            pool[pool_n++] = a->hospitals[i];
-        }
+        count[a->hospitals[i].insee]++;
     for (i = 0; i < b->size; i++)
-        if (!present[b->hospitals[i].insee])
-        {
-            present[b->hospitals[i].insee] = 1;
-            pool[pool_n++] = b->hospitals[i];
-        }
+        count[b->hospitals[i].insee]++;
 
-    int lo = a->size < b->size ? a->size : b->size;
-    int hi = a->size > b->size ? a->size : b->size;
+    for (i = 0; i < a->size; i++)
+    {
+        if (count[a->hospitals[i].insee] >= 2)
+            intersection[int_n++] = a->hospitals[i];
+        else
+            symdiff[sym_n++] = a->hospitals[i];
+    }
+    for (i = 0; i < b->size; i++)
+        if (count[b->hospitals[i].insee] == 1)
+            symdiff[sym_n++] = b->hospitals[i];
+
+    lo = a->size < b->size ? a->size : b->size;
+    hi = a->size > b->size ? a->size : b->size;
     target_size = lo + rand() % (hi - lo + 1);
 
-    if (target_size > pool_n)
-        target_size = pool_n;
+    if (target_size > int_n + sym_n)
+        target_size = int_n + sym_n;
+    if (target_size < int_n)
+        target_size = int_n; /* always keep the full intersection */
 
-    /* Shuffle pool and take the first target_size entries */
-    for (i = pool_n - 1; i > 0; i--)
+    /* Shuffle symdiff so the picked extras are random */
+    for (i = sym_n - 1; i > 0; i--)
     {
         int j = rand() % (i + 1);
-        Hospital tmp = pool[i];
-        pool[i] = pool[j];
-        pool[j] = tmp;
+        Hospital tmp = symdiff[i];
+        symdiff[i] = symdiff[j];
+        symdiff[j] = tmp;
     }
 
     child.hospitals = malloc(town_count * sizeof(Hospital));
     child.size = target_size;
-    for (i = 0; i < target_size; i++)
-        child.hospitals[i] = pool[i];
+    for (i = 0; i < int_n; i++)
+        child.hospitals[i] = intersection[i];
+    extras = target_size - int_n;
+    for (i = 0; i < extras; i++)
+        child.hospitals[int_n + i] = symdiff[i];
     memset(&child.fitness, 0, sizeof(Fitness));
 
-    free(present);
-    free(pool);
+    free(count);
+    free(intersection);
+    free(symdiff);
     return child;
 }
 
