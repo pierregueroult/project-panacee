@@ -54,6 +54,8 @@ static void local_search(Individual *result, const Town *towns, int town_count,
     while (improved)
     {
         int *cover_count = calloc(town_count, sizeof(int));
+        int best = -1;
+        int best_gain = 0;
 
         improved = 0;
         for (i = 0; i < result->size; i++)
@@ -73,15 +75,18 @@ static void local_search(Individual *result, const Town *towns, int town_count,
             for (k = 0; k < coverage_size[i]; k++)
                 if (cover_count[coverage[i][k]] == 0)
                     gain += towns[coverage[i][k]].inhabitants_count;
-            if (gain > PENALTY_HOSPITAL)
+            if (gain > best_gain)
             {
-                result->hospitals[result->size].insee = towns[i].insee;
-                result->hospitals[result->size].beds_count = 0;
-                result->size++;
-                for (k = 0; k < coverage_size[i]; k++)
-                    cover_count[coverage[i][k]]++;
-                improved = 1;
+                best_gain = gain;
+                best = i;
             }
+        }
+        if (best >= 0 && best_gain > PENALTY_HOSPITAL)
+        {
+            result->hospitals[result->size].insee = towns[best].insee;
+            result->hospitals[result->size].beds_count = 0;
+            result->size++;
+            improved = 1;
         }
         free(cover_count);
     }
