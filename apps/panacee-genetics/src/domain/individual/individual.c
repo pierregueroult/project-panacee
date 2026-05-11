@@ -80,7 +80,7 @@ Individual create_individual_random(const Town *towns, int town_count)
 }
 
 /* Greedy stochastic individual: at each step, pick randomly from towns whose
-   score (uncovered inhabitants they would cover) is >= 90% of the current best.
+   score (uncovered inhabitants they would cover) is >= 70% of the current best.
    Scores are updated lazily — O(town_count * avg_coverage) total. */
 Individual create_individual_greedy(const Town *towns, int town_count,
                                     int **coverage, const int *coverage_size)
@@ -113,8 +113,8 @@ Individual create_individual_greedy(const Town *towns, int town_count,
         if (max_score == 0)
             break; /* All towns are covered */
 
-        /* Pick randomly among towns scoring >= 90% of the best (stochastic greedy) */
-        int threshold = max_score * 9 / 10;
+        /* Pick randomly among towns scoring >= 70% of the best (stochastic greedy) */
+        int threshold = max_score * 7 / 10;
         int n_candidates = 0;
         for (i = 0; i < town_count; i++)
             if (score[i] >= threshold)
