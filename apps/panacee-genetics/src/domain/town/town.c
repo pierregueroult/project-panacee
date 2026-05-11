@@ -16,7 +16,7 @@ double haversine_km(double lat1, double lon1, double lat2, double lon2)
     return EARTH_RADIUS_KM * 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
 }
 
-int inhabitant_count(Town *towns, int size)
+int inhabitant_count(const Town *towns, int size)
 {
     int result = 0;
     int i;
@@ -27,7 +27,8 @@ int inhabitant_count(Town *towns, int size)
 
 /* Precompute coverage lists: for each town, which towns are within radius.
    Uses a latitude bounding box to skip most pairs before calling haversine. */
-void precompute_coverage(Town *towns, int town_count, int ***coverage, int **coverage_size)
+void precompute_coverage(const Town *towns, int town_count,
+                         int ***coverage, int **coverage_size)
 {
     int i, j, cnt;
     double dlat_max = RADIUS_HOSPITAL_KM / 111.0;
@@ -48,10 +49,66 @@ void precompute_coverage(Town *towns, int town_count, int ***coverage, int **cov
                              towns[j].latitude, towns[j].longitude) <= RADIUS_HOSPITAL_KM)
                 tmp[cnt++] = j;
         }
-        (*coverage)[i] = malloc(cnt * sizeof(int));
-        memcpy((*coverage)[i], tmp, cnt * sizeof(int));
+        if (cnt > 0)
+        {
+            (*coverage)[i] = malloc(cnt * sizeof(int));
+            memcpy((*coverage)[i], tmp, cnt * sizeof(int));
+        }
+        else
+        {
+            (*coverage)[i] = NULL;
+        }
         (*coverage_size)[i] = cnt;
     }
     free(tmp);
     printf("Coverage map done.\n");
+}
+
+void nearest_hospital_per_town(const Hospital *hospitals, int hospital_count,
+                               const Town *towns, int town_count,
+                               const int *insee_to_idx,
+                               int **coverage, const int *coverage_size,
+                               int *nearest_idx,
+                               double *nearest_dist_km)
+{
+    int i, h, k;
+    double *dist;
+    int dist_owned = 0;
+
+    if (nearest_dist_km)
+    {
+        dist = nearest_dist_km;
+    }
+    else
+    {
+        dist = malloc(town_count * sizeof(double));
+        dist_owned = 1;
+    }
+
+    for (i = 0; i < town_count; i++)
+    {
+        nearest_idx[i] = -1;
+        dist[i] = INFINITY_KM;
+    }
+
+    for (h = 0; h < hospital_count; h++)
+    {
+        int j = insee_to_idx[hospitals[h].insee];
+        if (j < 0)
+            continue;
+        for (k = 0; k < coverage_size[j]; k++)
+        {
+            int t = coverage[j][k];
+            double d = haversine_km(towns[j].latitude, towns[j].longitude,
+                                    towns[t].latitude, towns[t].longitude);
+            if (d < dist[t])
+            {
+                dist[t] = d;
+                nearest_idx[t] = h;
+            }
+        }
+    }
+
+    if (dist_owned)
+        free(dist);
 }

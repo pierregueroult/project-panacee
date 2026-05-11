@@ -6,6 +6,6 @@ double calculate_fitness_score(int total_inhabitants,
                                int hospitals_count,
                                int uhc_count)
 {
-    return (double)total_inhabitants - distant_residents - (double)PENALITY_HOSPITAL * hospitals_count + (double)BONUS_UHC * uhc_count;
+    return (double)total_inhabitants - distant_residents - (double)PENALTY_HOSPITAL * hospitals_count + (double)BONUS_UHC * uhc_count;
 }
 
