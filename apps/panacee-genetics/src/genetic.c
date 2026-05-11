@@ -117,6 +117,7 @@ Individual run_genetic(const Town *towns, int town_count)
 {
     int gen, i;
     int stagnation = 0;
+    int restarts = 0;
     double prev_best = -1;
     double current_mutation_rate = MUTATION_RATE;
     Individual result;
@@ -192,8 +193,64 @@ Individual run_genetic(const Town *towns, int town_count)
 
         if (stagnation >= STAGNATION_LIMIT)
         {
-            printf("Stop: stagnation over %d generations.\n", STAGNATION_LIMIT);
-            break;
+            if (restarts >= MAX_RESTARTS)
+            {
+                printf("Stop: stagnation over %d generations after %d restarts.\n",
+                       STAGNATION_LIMIT, MAX_RESTARTS);
+                break;
+            }
+
+            /* Perturbed restart: keep the elite, seed a few perturbed clones,
+               replace the rest with a fresh init_population. */
+            {
+                Individual elite_copy;
+                int best_idx = 0;
+                int c, m;
+
+                for (i = 1; i < pop.size; i++)
+                    if (pop.individuals[i].fitness.fitness_score >
+                        pop.individuals[best_idx].fitness.fitness_score)
+                        best_idx = i;
+
+                elite_copy.hospitals = malloc(town_count * sizeof(Hospital));
+                elite_copy.size = pop.individuals[best_idx].size;
+                memcpy(elite_copy.hospitals,
+                       pop.individuals[best_idx].hospitals,
+                       elite_copy.size * sizeof(Hospital));
+                elite_copy.fitness = pop.individuals[best_idx].fitness;
+
+                free_population(&pop);
+                pop = init_population(towns, town_count,
+                                      coverage, coverage_size);
+
+                /* Slot 0: untouched elite */
+                free_individual(&pop.individuals[0]);
+                pop.individuals[0] = elite_copy;
+
+                /* Slots 1..PERTURB_CLONES: forced high-amplitude mutations */
+                for (c = 1; c <= PERTURB_CLONES && c < pop.size; c++)
+                {
+                    free_individual(&pop.individuals[c]);
+                    pop.individuals[c].hospitals =
+                        malloc(town_count * sizeof(Hospital));
+                    pop.individuals[c].size = elite_copy.size;
+                    memcpy(pop.individuals[c].hospitals, elite_copy.hospitals,
+                           elite_copy.size * sizeof(Hospital));
+                    memset(&pop.individuals[c].fitness, 0, sizeof(Fitness));
+                    for (m = 0; m < PERTURB_MUTATIONS; m++)
+                        mutate(&pop.individuals[c], towns, town_count, 1.0,
+                               coverage, coverage_size, insee_to_idx);
+                }
+
+                evaluate_population(&pop, towns, town_count, insee_to_idx,
+                                    coverage, coverage_size, total_inhabitants);
+            }
+
+            restarts++;
+            stagnation = 0;
+            current_mutation_rate = MUTATION_RATE;
+            printf("Restart %d/%d at gen %d\n", restarts, MAX_RESTARTS, gen);
+            continue;
         }
 
         map_draw_state(&view, towns, town_count,

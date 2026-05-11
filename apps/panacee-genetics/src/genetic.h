@@ -20,6 +20,9 @@
 #define LOCAL_SEARCH_CHILD_ITER 2 /* local-search passes per child (memetic)    */
 #define MAX_GENERATIONS 200000
 #define STAGNATION_LIMIT 200
+#define MAX_RESTARTS 5             /* perturbed restarts when stagnation hits  */
+#define PERTURB_CLONES 4           /* perturbed copies of the elite at restart */
+#define PERTURB_MUTATIONS 4        /* forced mutations per perturbed clone     */
 #define PROGRESS_INTERVAL 25
 
 #define INSEE_MAX 100000
