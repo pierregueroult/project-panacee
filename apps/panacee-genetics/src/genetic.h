@@ -20,7 +20,7 @@
 #define MUTATION_RATE_MAX 0.60   /* upper bound when stagnation grows           */
 #define LOCAL_SEARCH_CHILD_ITER 2 /* local-search passes per child (memetic)    */
 #define MAX_GENERATIONS 200000
-#define STAGNATION_LIMIT 200
+#define STAGNATION_LIMIT 500
 #define MAX_RESTARTS 5             /* perturbed restarts when stagnation hits  */
 #define PERTURB_CLONES 4           /* perturbed copies of the elite at restart */
 #define PERTURB_MUTATIONS 4        /* forced mutations per perturbed clone     */
