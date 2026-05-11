@@ -172,9 +172,10 @@ Individual run_genetic(const Town *towns, int town_count)
             stagnation++;
 
             /* Progressively increase mutation rate to escape local optima */
-            if (stagnation % 10 == 0 && current_mutation_rate < 0.4)
+            if (stagnation % 10 == 0 && current_mutation_rate < MUTATION_RATE_MAX)
             {
-                current_mutation_rate = current_mutation_rate * 1.3 < 0.4 ? current_mutation_rate * 1.3 : 0.4;
+                double next = current_mutation_rate * 1.3;
+                current_mutation_rate = next < MUTATION_RATE_MAX ? next : MUTATION_RATE_MAX;
                 printf("Stagnation at gen %d -> mutation_rate = %.2f\n",
                        stagnation, current_mutation_rate);
             }
