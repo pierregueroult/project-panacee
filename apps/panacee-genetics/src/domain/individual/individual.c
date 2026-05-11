@@ -314,94 +314,123 @@ void mutate(Individual *ind, const Town *towns, int town_count,
     }
     else if (op == 1 && ind->size > 1)
     {
-        /* Remove the hospital with the smallest exclusive coverage
-           (fewest inhabitants that would become uncovered). */
-        int *cover_count = calloc(town_count, sizeof(int));
-        int worst = -1;
-        int worst_exclusive = -1;
-        int h;
-
-        for (h = 0; h < ind->size; h++)
+        if (rand() % 2 == 0)
         {
-            int j = insee_to_idx[ind->hospitals[h].insee];
-            if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    cover_count[coverage[j][k]]++;
+            /* Random remove: pure exploration, breaks determinism */
+            int idx = rand() % ind->size;
+            ind->hospitals[idx] = ind->hospitals[--ind->size];
         }
-
-        for (h = 0; h < ind->size; h++)
+        else
         {
-            int j = insee_to_idx[ind->hospitals[h].insee];
-            int exclusive = 0;
-            if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    if (cover_count[coverage[j][k]] == 1)
-                        exclusive += towns[coverage[j][k]].inhabitants_count;
-            if (worst < 0 || exclusive < worst_exclusive)
+            /* Smart remove: hospital with the smallest exclusive coverage
+               (fewest inhabitants that would become uncovered). */
+            int *cover_count = calloc(town_count, sizeof(int));
+            int worst = -1;
+            int worst_exclusive = -1;
+            int h;
+
+            for (h = 0; h < ind->size; h++)
             {
-                worst_exclusive = exclusive;
-                worst = h;
+                int j = insee_to_idx[ind->hospitals[h].insee];
+                if (j >= 0)
+                    for (k = 0; k < coverage_size[j]; k++)
+                        cover_count[coverage[j][k]]++;
             }
-        }
 
-        if (worst >= 0)
-            ind->hospitals[worst] = ind->hospitals[--ind->size];
-        free(cover_count);
+            for (h = 0; h < ind->size; h++)
+            {
+                int j = insee_to_idx[ind->hospitals[h].insee];
+                int exclusive = 0;
+                if (j >= 0)
+                    for (k = 0; k < coverage_size[j]; k++)
+                        if (cover_count[coverage[j][k]] == 1)
+                            exclusive += towns[coverage[j][k]].inhabitants_count;
+                if (worst < 0 || exclusive < worst_exclusive)
+                {
+                    worst_exclusive = exclusive;
+                    worst = h;
+                }
+            }
+
+            if (worst >= 0)
+                ind->hospitals[worst] = ind->hospitals[--ind->size];
+            free(cover_count);
+        }
     }
-    else
+    else if (ind->size > 0)
     {
-        /* Move the least-exclusive hospital to the best uncovered town. */
-        int *cover_count = calloc(town_count, sizeof(int));
-        int worst = -1;
-        int worst_exclusive = -1;
-        int best_dest = -1;
-        int best_gain = 0;
-        int h;
-
-        for (h = 0; h < ind->size; h++)
+        if (rand() % 2 == 0)
         {
-            int j = insee_to_idx[ind->hospitals[h].insee];
-            if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    cover_count[coverage[j][k]]++;
-        }
-
-        for (h = 0; h < ind->size; h++)
-        {
-            int j = insee_to_idx[ind->hospitals[h].insee];
-            int exclusive = 0;
-            if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    if (cover_count[coverage[j][k]] == 1)
-                        exclusive += towns[coverage[j][k]].inhabitants_count;
-            if (worst < 0 || exclusive < worst_exclusive)
+            /* Random move: pick any hospital, send it to a random town.
+               If the destination already has a hospital, drop the source. */
+            int idx = rand() % ind->size;
+            int new_idx = rand() % town_count;
+            for (i = 0; i < ind->size; i++)
             {
-                worst_exclusive = exclusive;
-                worst = h;
+                if (i != idx && ind->hospitals[i].insee == towns[new_idx].insee)
+                {
+                    ind->hospitals[idx] = ind->hospitals[--ind->size];
+                    return;
+                }
             }
+            ind->hospitals[idx].insee = towns[new_idx].insee;
+            ind->hospitals[idx].beds_count = 0;
         }
-
-        for (i = 0; i < town_count; i++)
+        else
         {
-            int gain = 0;
-            if (cover_count[i] > 0)
-                continue;
-            for (k = 0; k < coverage_size[i]; k++)
-                if (cover_count[coverage[i][k]] == 0)
-                    gain += towns[coverage[i][k]].inhabitants_count;
-            if (gain > best_gain)
+            /* Smart move: least-exclusive hospital -> best uncovered town. */
+            int *cover_count = calloc(town_count, sizeof(int));
+            int worst = -1;
+            int worst_exclusive = -1;
+            int best_dest = -1;
+            int best_gain = 0;
+            int h;
+
+            for (h = 0; h < ind->size; h++)
             {
-                best_gain = gain;
-                best_dest = i;
+                int j = insee_to_idx[ind->hospitals[h].insee];
+                if (j >= 0)
+                    for (k = 0; k < coverage_size[j]; k++)
+                        cover_count[coverage[j][k]]++;
             }
-        }
 
-        if (worst >= 0 && best_dest >= 0)
-        {
-            ind->hospitals[worst].insee = towns[best_dest].insee;
-            ind->hospitals[worst].beds_count = 0;
+            for (h = 0; h < ind->size; h++)
+            {
+                int j = insee_to_idx[ind->hospitals[h].insee];
+                int exclusive = 0;
+                if (j >= 0)
+                    for (k = 0; k < coverage_size[j]; k++)
+                        if (cover_count[coverage[j][k]] == 1)
+                            exclusive += towns[coverage[j][k]].inhabitants_count;
+                if (worst < 0 || exclusive < worst_exclusive)
+                {
+                    worst_exclusive = exclusive;
+                    worst = h;
+                }
+            }
+
+            for (i = 0; i < town_count; i++)
+            {
+                int gain = 0;
+                if (cover_count[i] > 0)
+                    continue;
+                for (k = 0; k < coverage_size[i]; k++)
+                    if (cover_count[coverage[i][k]] == 0)
+                        gain += towns[coverage[i][k]].inhabitants_count;
+                if (gain > best_gain)
+                {
+                    best_gain = gain;
+                    best_dest = i;
+                }
+            }
+
+            if (worst >= 0 && best_dest >= 0)
+            {
+                ind->hospitals[worst].insee = towns[best_dest].insee;
+                ind->hospitals[worst].beds_count = 0;
+            }
+            free(cover_count);
         }
-        free(cover_count);
     }
 }
 

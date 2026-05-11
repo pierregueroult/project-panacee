@@ -23,6 +23,9 @@
 #define MUTATION_RATE 0.15       /* initial mutation probability per individual */
 #define MUTATION_RATE_MAX 0.60   /* upper bound when stagnation grows           */
 #define LOCAL_SEARCH_CHILD_ITER 2 /* local-search passes per child (memetic)    */
+#define LOCAL_SEARCH_CHILD_PROB 0.30 /* fraction of children touched by LS      */
+#define LOCAL_SEARCH_TOPK 8       /* per-child LS: pick among top-K candidates  */
+#define LOCAL_SEARCH_TOPK_MAX 16  /* upper bound for stack-allocated top-K buf  */
 #define MAX_GENERATIONS 200000
 #define STAGNATION_LIMIT 500
 #define MAX_RESTARTS 5             /* perturbed restarts when stagnation hits  */

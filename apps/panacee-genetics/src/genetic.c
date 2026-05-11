@@ -45,20 +45,27 @@ static void compute_covered(char *covered,
     }
 }
 
+/* Greedy add of one town per iteration.
+   top_k == 1  -> deterministic max-gain pick (exploitation, final pass).
+   top_k >  1  -> uniform pick among the top_k candidates whose gain exceeds
+                  PENALTY_HOSPITAL (exploration, per-child memetic). */
 static void local_search(Individual *result, const Town *towns, int town_count,
                          const int *insee_to_idx,
                          int **coverage, const int *coverage_size,
-                         int max_iter)
+                         int max_iter, int top_k)
 {
     int improved = 1;
     int i, k;
     int iter = 0;
+    int effective_k = top_k > LOCAL_SEARCH_TOPK_MAX ? LOCAL_SEARCH_TOPK_MAX : top_k;
+    if (effective_k < 1) effective_k = 1;
 
     while (improved && iter < max_iter)
     {
         int *cover_count = calloc(town_count, sizeof(int));
-        int best = -1;
-        int best_gain = 0;
+        int top_idx[LOCAL_SEARCH_TOPK_MAX];
+        int top_gain[LOCAL_SEARCH_TOPK_MAX];
+        int top_n = 0;
 
         improved = 0;
         iter++;
@@ -73,21 +80,35 @@ static void local_search(Individual *result, const Town *towns, int town_count,
         for (i = 0; i < town_count; i++)
         {
             int gain;
+            int pos, s, shift_end;
             if (cover_count[i] > 0)
                 continue;
             gain = 0;
             for (k = 0; k < coverage_size[i]; k++)
                 if (cover_count[coverage[i][k]] == 0)
                     gain += towns[coverage[i][k]].inhabitants_count;
-            if (gain > best_gain)
+            if (gain <= PENALTY_HOSPITAL)
+                continue;
+
+            /* Insertion sort into top_k by gain desc */
+            pos = 0;
+            while (pos < top_n && top_gain[pos] >= gain) pos++;
+            if (pos >= effective_k) continue;
+            shift_end = top_n < effective_k ? top_n : effective_k - 1;
+            for (s = shift_end; s > pos; s--)
             {
-                best_gain = gain;
-                best = i;
+                top_gain[s] = top_gain[s - 1];
+                top_idx[s] = top_idx[s - 1];
             }
+            top_gain[pos] = gain;
+            top_idx[pos] = i;
+            if (top_n < effective_k) top_n++;
         }
-        if (best >= 0 && best_gain > PENALTY_HOSPITAL)
+        if (top_n > 0)
         {
-            result->hospitals[result->size].insee = towns[best].insee;
+            int choice = effective_k > 1 ? rand() % top_n : 0;
+            int chosen = top_idx[choice];
+            result->hospitals[result->size].insee = towns[chosen].insee;
             result->hospitals[result->size].beds_count = 0;
             result->size++;
             improved = 1;
@@ -401,11 +422,15 @@ Individual run_genetic(const Town *towns, int town_count)
                     mutate(&next_island.individuals[i], towns, town_count,
                            current_mutation_rate, coverage, coverage_size,
                            insee_to_idx);
+                    /* Memetic LS: only on a fraction of children, with a
+                       stochastic top-K pick to preserve diversity. */
+                    if ((double)rand() / RAND_MAX < LOCAL_SEARCH_CHILD_PROB)
+                        local_search(&next_island.individuals[i], towns,
+                                     town_count, insee_to_idx, coverage,
+                                     coverage_size, LOCAL_SEARCH_CHILD_ITER,
+                                     LOCAL_SEARCH_TOPK);
                     remove_redundant(&next_island.individuals[i], coverage,
                                      coverage_size, insee_to_idx, town_count);
-                    local_search(&next_island.individuals[i], towns, town_count,
-                                 insee_to_idx, coverage, coverage_size,
-                                 LOCAL_SEARCH_CHILD_ITER);
                 }
 
                 free_population(src);
@@ -442,7 +467,7 @@ Individual run_genetic(const Town *towns, int town_count)
 
     printf("Running local search...\n");
     local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size,
-                 INT_MAX);
+                 INT_MAX, 1);
     printf("Local search done.\n");
 
     evaluate(&result, towns, town_count, insee_to_idx, coverage,
