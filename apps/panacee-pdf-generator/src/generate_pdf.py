@@ -1,31 +1,22 @@
 from pathlib import Path
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Flowable,
+)
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm, cm
-from reportlab.platypus import Flowable
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import cm
 
-from load_data import *
+from load_data import OUTPUT_DIR, get_department_data, load_all_data
 
-# COULEURS
-COLOR_GREEN  = colors.green        # Nb hôpitaux
-COLOR_ORANGE = colors.orange       # Total lits
-COLOR_RED    = colors.red          # Population
-COLOR_BLUE   = colors.blue         # Lits/1000
-COLOR_DARK   = colors.darkblue     # Header tableau
-COLOR_LIGHT  = colors.lightgrey    # Ligne paire
+COLOR_GREEN  = colors.green
+COLOR_ORANGE = colors.orange
+COLOR_RED    = colors.red
+COLOR_BLUE   = colors.blue
+COLOR_DARK   = colors.darkblue
+COLOR_LIGHT  = colors.lightgrey
 COLOR_WHITE  = colors.white
 COLOR_BORDER = colors.grey
-# COLOR_GREEN  = colors.HexColor("#27AE60")   # Nb hôpitaux
-# COLOR_ORANGE = colors.HexColor("#E67E22")   # Total lits
-# COLOR_RED    = colors.HexColor("#C0392B")   # Population
-# COLOR_BLUE   = colors.HexColor("#2980B9")   # Lits/1000
-# COLOR_DARK   = colors.HexColor("#2C3E50")   # Header tableau
-# COLOR_LIGHT  = colors.HexColor("#ECF0F1")   # Ligne paire
-# COLOR_WHITE  = colors.white
-# COLOR_BORDER = colors.HexColor("#BDC3C7")
 
 
 # LIGNE DE SÉPARATION
@@ -53,23 +44,24 @@ class StatCards(Flowable):
     4 cartes colorées sur une ligne :
     [Nb hôpitaux | Total lits | Population | Lits/1000]
     """
-    def __init__(self, hospital_count, total_beds, total_population, beds_per_1000, page_width):
+    def __init__(self, hospital_count, total_beds, total_population, beds_per_1000):
         super().__init__()
         self.hospital_count   = hospital_count
         self.total_beds       = total_beds
         self.total_population = total_population
         self.beds_per_1000    = beds_per_1000
-        self.page_width       = page_width
         self.card_h = 2.2 * cm
         self.gap    = 0.3 * cm
+        self.width  = 0
 
-    def wrap(self, *args):
-        return self.page_width, self.card_h + 0.2 * cm
+    def wrap(self, avail_width, avail_height):
+        self.width = avail_width
+        return self.width, self.card_h + 0.2 * cm
 
     def draw(self):
         c = self.canv
         n = 4
-        card_w = (self.page_width - (n - 1) * self.gap) / n
+        card_w = (self.width - (n - 1) * self.gap) / n
 
         cards = [
             (COLOR_GREEN,  "Hopitaux",        str(self.hospital_count)),
@@ -116,10 +108,8 @@ def build_city_table(department_hospitals):
             table_data.append([row["city_name"], int(row["beds_count"])])
 
     col_widths = [9 * cm, 5 * cm]
-    table = Table(table_data, colWidths=col_widths)
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
 
-    # Style du tableau
-    n_rows = len(table_data)
     style = [
         # ── Header ──
         ("BACKGROUND",   (0, 0), (-1, 0),  COLOR_DARK),
@@ -149,7 +139,7 @@ def build_city_table(department_hospitals):
 
 def build_department_elements(department_code, department_hospitals,
                                department_towns, department_stats,
-                               styles, page_width):
+                               page_width):
     """
     Retourne la liste des Flowables pour un département.
     Étapes :
@@ -161,12 +151,14 @@ def build_department_elements(department_code, department_hospitals,
     """
     elements = []
 
-    # TITRE 
-    # Récupère le nom du département
-    if not department_hospitals.empty:
-        dept_name = department_hospitals["department_name"].dropna().iloc[0]
+    hospitals_names = department_hospitals["department_name"].dropna()
+    towns_names = department_towns["department_name"].dropna()
+    if not hospitals_names.empty:
+        dept_name = hospitals_names.iloc[0]
+    elif not towns_names.empty:
+        dept_name = towns_names.iloc[0]
     else:
-        dept_name = department_towns["department_name"].dropna().iloc[0]
+        dept_name = department_code
 
     title_style = ParagraphStyle(
         "DeptTitle",
@@ -189,7 +181,6 @@ def build_department_elements(department_code, department_hospitals,
         total_beds       = int(stats["total_beds"]),
         total_population = int(stats["total_population"]),
         beds_per_1000    = stats["beds_per_1000"],
-        page_width       = page_width,
     ))
     elements.append(Spacer(1, 0.6 * cm))
 
@@ -222,7 +213,6 @@ def generate_department_pdf(department_code: str) -> Path:
 
     pdf_path = OUTPUT_DIR / f"department_{department_code}.pdf"
 
-    styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(
         str(pdf_path),
         pagesize=A4,
@@ -232,12 +222,12 @@ def generate_department_pdf(department_code: str) -> Path:
         bottomMargin=1.5 * cm,
     )
 
-    page_width = A4[0] - 3 * cm   # largeur utile (marges gauche + droite = 3 cm)
+    page_width = A4[0] - 3 * cm
 
     elements = build_department_elements(
         department_code, department_hospitals,
         department_towns, department_stats,
-        styles, page_width
+        page_width,
     )
 
     doc.build(elements)
@@ -259,7 +249,6 @@ def generate_all_departments_in_one_pdf() -> Path:
 
     pdf_path = OUTPUT_DIR / "all_departments.pdf"
 
-    styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(
         str(pdf_path),
         pagesize=A4,
@@ -282,11 +271,10 @@ def generate_all_departments_in_one_pdf() -> Path:
         dept_elements = build_department_elements(
             department_code, department_hospitals,
             department_towns, department_stats,
-            styles, page_width
+            page_width,
         )
         elements.extend(dept_elements)
 
-        # Saut de page entre chaque département (sauf le dernier)
         if index < len(department_codes) - 1:
             elements.append(PageBreak())
 

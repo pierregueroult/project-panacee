@@ -1,8 +1,7 @@
-from generate_pdf import *
+from generate_pdf import generate_all_departments_in_one_pdf
 
 
 def main():
-    
     pdf_path = generate_all_departments_in_one_pdf()
     print(f"PDF généré : {pdf_path}")
 
