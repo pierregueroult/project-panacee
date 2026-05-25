@@ -9,8 +9,6 @@ from reportlab.platypus import Flowable
 
 from load_data import *
 
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
-
 # COULEURS
 COLOR_GREEN  = colors.green        # Nb hôpitaux
 COLOR_ORANGE = colors.orange       # Total lits

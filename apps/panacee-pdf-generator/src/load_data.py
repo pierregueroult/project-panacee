@@ -2,7 +2,9 @@ from pathlib import Path
 import pandas as pd
 
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+INPUT_DIR = REPO_ROOT / "data" / "input"
+OUTPUT_DIR = REPO_ROOT / "data" / "output"
 
 def merge_towns_hospitals() -> pd.DataFrame:
     towns, hospitals, _ = load_all_data()
@@ -16,7 +18,7 @@ def merge_towns_hospitals() -> pd.DataFrame:
     return merged
 
 def load_towns() -> pd.DataFrame:
-    towns_path = DATA_DIR / "communes-france-metrople-2025.csv"
+    towns_path = INPUT_DIR / "communes-france-metrople-2025.csv"
 
     towns = pd.read_csv(towns_path, header=None)
 
@@ -47,7 +49,7 @@ def load_towns() -> pd.DataFrame:
 
 
 def load_hospitals() -> pd.DataFrame:
-    hospitals_path = DATA_DIR / "hospitals.csv"
+    hospitals_path = OUTPUT_DIR / "hospitals.csv"
     hospitals = pd.read_csv(hospitals_path)
 
     hospitals["insee"] = hospitals["insee"].astype(str).str.zfill(5)
@@ -59,7 +61,7 @@ def load_hospitals() -> pd.DataFrame:
 
 
 def load_fitness() -> pd.DataFrame:
-    fitness_path = DATA_DIR / "fitness.csv"
+    fitness_path = OUTPUT_DIR / "fitness.csv"
     fitness = pd.read_csv(fitness_path)
     return fitness
 

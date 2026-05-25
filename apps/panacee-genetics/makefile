@@ -1,55 +1,40 @@
-CC          = cc
-CFLAGS = -Wall -ansi -g
-NAME        = panacee
-NAME_NO_MLV = panacee-no-mlv
+CC = cc
+CFLAGS = -Wall -ansi -g -DUSE_MLV
+LDFLAGS =
 
-SRC_DIR        = src
-OBJ_DIR        = bin/full
-OBJ_DIR_NO_MLV = bin/no-mlv
-RESULTS_DIR    = $(SRC_DIR)/results
+# Linux (pkg-config standard) :
+MLV_CFLAGS = $(shell pkg-config --cflags MLV)
+MLV_LIBS = $(shell pkg-config --libs MLV)
+# macOS (brew + sdl12-compat) :
+# PKG_CONFIG_PATH := $(HOME)/.local/mlv-deps/lib/pkgconfig:$(shell brew --prefix)/lib/pkgconfig:$(shell brew --prefix)/opt/sdl12-compat/lib/pkgconfig
+# MLV_CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags MLV)
+# MLV_LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs MLV)
 
-SRC        = $(shell find $(SRC_DIR) -type f -name "*.c")
-OBJ        = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
-OBJ_NO_MLV = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR_NO_MLV)/%.o,$(SRC))
+NAME    = panacee
+SRC_DIR = src
+OBJ_DIR = bin/obj
+
+SRC = $(shell find $(SRC_DIR) -type f -name "*.c")
+OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 all: $(NAME)
 
-# ---- main MLV build ----
-$(NAME): CFLAGS += -DUSE_MLV
 $(NAME): $(OBJ)
-	$(CC) $(OBJ) -o $(NAME) -lMLV -lm
+	$(CC) $(OBJ) -o $(NAME) $(MLV_LIBS) -lm $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(MLV_CFLAGS) -c $< -o $@
 
-# ---- headless (no MLV) build ----
-no-mlv: $(NAME_NO_MLV)
-
-$(NAME_NO_MLV): $(OBJ_NO_MLV)
-	$(CC) $(OBJ_NO_MLV) -o $(NAME_NO_MLV) -lm
-
-$(OBJ_DIR_NO_MLV)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# ---- runners ----
-$(RESULTS_DIR):
-	@mkdir -p $(RESULTS_DIR)
-
-run: $(NAME) $(RESULTS_DIR)
+run: $(NAME)
 	./$(NAME)
 
-run-no-mlv: $(NAME_NO_MLV) $(RESULTS_DIR)
-	./$(NAME_NO_MLV)
-
-# ---- cleanup ----
 clean:
-	rm -rf $(OBJ_DIR) $(OBJ_DIR_NO_MLV)
+	rm -rf $(OBJ_DIR)
 
 fclean: clean
-	rm -f $(NAME) $(NAME_NO_MLV)
+	rm -f $(NAME)
 
 re: fclean all
 
-.PHONY: all no-mlv run run-no-mlv clean fclean re
+.PHONY: all run clean fclean re
