@@ -7,7 +7,13 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
 
-from load_data import OUTPUT_DIR, get_department_data, load_all_data
+from load_data import (
+    OUTPUT_DIR,
+    department_summary,
+    get_department_data,
+    load_hospitals,
+    load_towns_status,
+)
 
 COLOR_GREEN  = colors.green
 COLOR_ORANGE = colors.orange
@@ -96,7 +102,7 @@ def build_city_table(department_hospitals):
     table_data = [["Ville", "Nombre de lits"]]
 
     displayed = (
-        department_hospitals[["city_name", "beds_count"]]
+        department_hospitals[["name", "beds_count"]]
         .dropna()
         .sort_values("beds_count", ascending=False)
     )
@@ -105,7 +111,7 @@ def build_city_table(department_hospitals):
         table_data.append(["Aucun hôpital", "-"])
     else:
         for _, row in displayed.iterrows():
-            table_data.append([row["city_name"], int(row["beds_count"])])
+            table_data.append([row["name"], int(row["beds_count"])])
 
     col_widths = [9 * cm, 5 * cm]
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -206,7 +212,13 @@ def build_department_elements(department_code, department_hospitals,
 def generate_department_pdf(department_code: str) -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    department_towns, department_hospitals, department_stats = get_department_data(department_code)
+    hospitals = load_hospitals()
+    towns_status = load_towns_status()
+    summary = department_summary(hospitals, towns_status)
+
+    department_towns, department_hospitals, department_stats = get_department_data(
+        department_code, hospitals, towns_status, summary
+    )
 
     if department_stats.empty:
         raise ValueError(f"Aucune donnée trouvée pour le département {department_code}")
@@ -240,11 +252,13 @@ def generate_department_pdf(department_code: str) -> Path:
 def generate_all_departments_in_one_pdf() -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    towns, _, _ = load_all_data()
+    hospitals = load_hospitals()
+    towns_status = load_towns_status()
+    summary = department_summary(hospitals, towns_status)
 
     department_codes = sorted(
-        towns["department_code"].dropna().astype(str).unique(),
-        key=lambda x: int(x)
+        towns_status["department_code"].dropna().astype(str).unique(),
+        key=lambda x: int(x),
     )
 
     pdf_path = OUTPUT_DIR / "all_departments.pdf"
@@ -263,7 +277,9 @@ def generate_all_departments_in_one_pdf() -> Path:
     elements = []
 
     for index, department_code in enumerate(department_codes):
-        department_towns, department_hospitals, department_stats = get_department_data(department_code)
+        department_towns, department_hospitals, department_stats = get_department_data(
+            department_code, hospitals, towns_status, summary
+        )
 
         if department_stats.empty:
             continue
