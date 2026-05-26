@@ -401,7 +401,12 @@ def build_cover_elements(hospitals, towns_coords_df, fitness, borders, page_widt
                         towns_coords_df["lon"].tolist()))
     hosp_xy = list(zip(hospitals["lat"].tolist(),
                        hospitals["lon"].tolist()))
-    all_rings = [ring for rings in borders.values() for ring in rings]
+    all_rings = [
+        ring
+        for code, rings in borders.items()
+        if code not in ("2A", "2B")
+        for ring in rings
+    ]
     elements.append(
         DepartmentMiniMap(towns_xy, hosp_xy, page_width,
                           border_rings=all_rings, height=13 * cm,
