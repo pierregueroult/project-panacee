@@ -13,7 +13,7 @@
 #define LONGITUDE_COL       9
 
 #define LINE_BUFFER 1024
-#define DEFAULT_CSV_PATH "../../data/communes-france-metrople-2025.csv"
+#define DEFAULT_CSV_PATH "../../data/input/communes-france-metrople-2025.csv"
 
 static void copy_field(char *dst, const char *src, size_t cap)
 {
