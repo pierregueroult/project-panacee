@@ -21,6 +21,7 @@ from load_data import (
     get_department_data,
     load_communes_coords,
     load_department_borders,
+    load_fitness,
     load_hospitals,
     load_towns_status,
 )
@@ -107,6 +108,45 @@ class StatCards(Flowable):
             c.drawCentredString(x + card_w / 2, y + self.card_h * 0.18, label)
 
 
+class StatGrid(Flowable):
+    """Grille N colonnes × M lignes de cartes colorées (color, label, value)."""
+
+    def __init__(self, cards, cols=4, card_h=2.2 * cm, gap=0.3 * cm):
+        super().__init__()
+        self.cards = cards
+        self.cols = cols
+        self.rows = (len(cards) + cols - 1) // cols
+        self.card_h = card_h
+        self.gap = gap
+        self.width = 0
+
+    def wrap(self, avail_width, avail_height):
+        self.width = avail_width
+        total_h = self.rows * self.card_h + (self.rows - 1) * self.gap
+        return self.width, total_h + 0.2 * cm
+
+    def draw(self):
+        c = self.canv
+        card_w = (self.width - (self.cols - 1) * self.gap) / self.cols
+        row_step = self.card_h + self.gap
+
+        for i, (color, label, value) in enumerate(self.cards):
+            col = i % self.cols
+            row = i // self.cols
+            x = col * (card_w + self.gap)
+            y = (self.rows - 1 - row) * row_step
+
+            c.setFillColor(color)
+            c.roundRect(x, y, card_w, self.card_h, 6, fill=1, stroke=0)
+
+            c.setFillColor(COLOR_WHITE)
+            c.setFont("Helvetica-Bold", 14)
+            c.drawCentredString(x + card_w / 2, y + self.card_h * 0.52, str(value))
+
+            c.setFont("Helvetica", 8)
+            c.drawCentredString(x + card_w / 2, y + self.card_h * 0.18, label)
+
+
 # MINI-CARTE DÉPARTEMENT
 
 
@@ -117,8 +157,10 @@ class DepartmentMiniMap(Flowable):
     """
 
     def __init__(self, towns_coords, hospitals_coords, width, border_rings=None,
-                 height=6 * cm):
+                 height=6 * cm, town_radius=0.8, hospital_radius=2.0):
         super().__init__()
+        self.town_radius = town_radius
+        self.hospital_radius = hospital_radius
         self.towns = [
             (lat, lon)
             for lat, lon in towns_coords
@@ -210,14 +252,14 @@ class DepartmentMiniMap(Flowable):
         c.setStrokeColor(COLOR_BORDER)
         for lat, lon in self.towns:
             x, y = project(lat, lon)
-            c.circle(x, y, 0.8, fill=1, stroke=0)
+            c.circle(x, y, self.town_radius, fill=1, stroke=0)
 
         c.setFillColor(COLOR_RED)
         c.setStrokeColor(colors.white)
         c.setLineWidth(0.3)
         for lat, lon in self.hospitals:
             x, y = project(lat, lon)
-            c.circle(x, y, 2.0, fill=1, stroke=1)
+            c.circle(x, y, self.hospital_radius, fill=1, stroke=1)
 
         # Légende
         c.setFont("Helvetica", 7)
@@ -227,7 +269,7 @@ class DepartmentMiniMap(Flowable):
         c.drawString(margin + 0.3 * cm, 0.18 * cm, "Commune")
 
         c.setFillColor(COLOR_RED)
-        c.circle(margin + 2.2 * cm, 0.25 * cm, 2.0, fill=1, stroke=0)
+        c.circle(margin + 2.2 * cm, 0.25 * cm, 1.6, fill=1, stroke=0)
         c.setFillColor(colors.black)
         c.drawString(margin + 2.4 * cm, 0.18 * cm, "Hôpital")
 
@@ -314,6 +356,74 @@ def build_city_table(department_hospitals, page_width):
 
 
 # LES ÉLÉMENTS DE LA PAGE
+
+
+def _fmt_int(v):
+    return f"{int(v):,}".replace(",", " ")
+
+
+def _fmt_pct(v):
+    return f"{float(v):.2f} %".replace(".", ",")
+
+
+def build_cover_elements(hospitals, towns_coords_df, fitness, borders, page_width):
+    """Page de garde : titre, carte de France entière, statistiques globales."""
+    elements = []
+
+    title_style = ParagraphStyle(
+        "CoverTitle",
+        fontName="Helvetica-Bold",
+        fontSize=32,
+        leading=38,
+        textColor=COLOR_DARK,
+        spaceAfter=8,
+        alignment=1,
+    )
+    subtitle_style = ParagraphStyle(
+        "CoverSub",
+        fontName="Helvetica",
+        fontSize=12,
+        leading=16,
+        textColor=COLOR_BORDER,
+        alignment=1,
+    )
+    elements.append(Paragraph("Panacée", title_style))
+    elements.append(
+        Paragraph("Optimisation de la couverture hospitalière en France",
+                  subtitle_style)
+    )
+    elements.append(Spacer(1, 0.4 * cm))
+    elements.append(HRule(page_width, thickness=2, color=COLOR_DARK))
+    elements.append(Spacer(1, 0.6 * cm))
+
+    # Carte de France entière
+    towns_xy = list(zip(towns_coords_df["lat"].tolist(),
+                        towns_coords_df["lon"].tolist()))
+    hosp_xy = list(zip(hospitals["lat"].tolist(),
+                       hospitals["lon"].tolist()))
+    all_rings = [ring for rings in borders.values() for ring in rings]
+    elements.append(
+        DepartmentMiniMap(towns_xy, hosp_xy, page_width,
+                          border_rings=all_rings, height=13 * cm,
+                          town_radius=0.25, hospital_radius=0.9)
+    )
+    elements.append(Spacer(1, 0.6 * cm))
+
+    # Statistiques globales (fitness.csv, sans fitness_average)
+    f = fitness.iloc[0]
+    cards = [
+        (COLOR_GREEN,  "Hôpitaux",              _fmt_int(f["hospital_count"])),
+        (COLOR_ORANGE, "CHRU",                  _fmt_int(f["uhc_count"])),
+        (COLOR_RED,    "Habitants éloignés",    _fmt_int(f["distant_resident_count"])),
+        (COLOR_BLUE,   "% habitants éloignés",  _fmt_pct(f["distant_resident_percent"])),
+        (COLOR_GREEN,  "Communes éloignées",    _fmt_int(f["distant_town_count"])),
+        (COLOR_ORANGE, "% communes éloignées",  _fmt_pct(f["distant_town_percent"])),
+        (COLOR_DARK,   "Score fitness",         _fmt_int(f["fitness_score"])),
+        (COLOR_BLUE,   "Population GA",         _fmt_int(f["fitness_count"])),
+    ]
+    elements.append(StatGrid(cards, cols=4))
+    elements.append(PageBreak())
+    return elements
 
 
 def build_department_elements(
@@ -463,6 +573,7 @@ def generate_all_departments_in_one_pdf() -> Path:
     summary = department_summary(hospitals, towns_status)
     coords = load_communes_coords()
     borders = load_department_borders()
+    fitness = load_fitness()
 
     department_codes = sorted(
         towns_status["department_code"].dropna().astype(str).unique(),
@@ -482,7 +593,13 @@ def generate_all_departments_in_one_pdf() -> Path:
 
     page_width = A4[0] - 3 * cm
 
-    elements = []
+    elements = build_cover_elements(
+        hospitals.merge(coords, on="insee", how="left"),
+        coords,
+        fitness,
+        borders,
+        page_width,
+    )
 
     for index, department_code in enumerate(department_codes):
         department_towns, department_hospitals, department_stats = get_department_data(
