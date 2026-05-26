@@ -1,9 +1,28 @@
 from pathlib import Path
+from typing import Optional
 import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_DIR = REPO_ROOT / "data" / "output"
+INPUT_DIR = REPO_ROOT / "data" / "input"
+
+
+def load_communes_coords() -> pd.DataFrame:
+    df = pd.read_csv(
+        INPUT_DIR / "communes-france-metrople-2025.csv",
+        header=None,
+        names=[
+            "insee", "name", "region_code", "region_name",
+            "dept_code", "dept_name", "postal_code", "inhabitants",
+            "lat", "lon",
+        ],
+        usecols=["insee", "lat", "lon"],
+    )
+    df["insee"] = df["insee"].astype(str).str.zfill(5)
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+    return df.dropna(subset=["lat", "lon"])
 
 
 def load_hospitals() -> pd.DataFrame:
@@ -72,8 +91,14 @@ def get_department_data(
     hospitals: pd.DataFrame,
     towns_status: pd.DataFrame,
     summary: pd.DataFrame,
+    coords: Optional[pd.DataFrame] = None,
 ):
     dept_hospitals = hospitals[hospitals["department_code"] == department_code].copy()
     dept_towns = towns_status[towns_status["department_code"] == department_code].copy()
     dept_stats = summary[summary["department_code"] == department_code].copy()
+
+    if coords is not None:
+        dept_hospitals = dept_hospitals.merge(coords, on="insee", how="left")
+        dept_towns = dept_towns.merge(coords, on="insee", how="left")
+
     return dept_towns, dept_hospitals, dept_stats

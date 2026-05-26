@@ -1,33 +1,43 @@
+import math
 from pathlib import Path
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Flowable,
-)
+
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
+from reportlab.platypus import (
+    Flowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from load_data import (
     OUTPUT_DIR,
     department_summary,
     get_department_data,
+    load_communes_coords,
     load_hospitals,
     load_towns_status,
 )
 
-COLOR_GREEN  = colors.green
+COLOR_GREEN = colors.green
 COLOR_ORANGE = colors.orange
-COLOR_RED    = colors.red
-COLOR_BLUE   = colors.blue
-COLOR_DARK   = colors.darkblue
-COLOR_LIGHT  = colors.lightgrey
-COLOR_WHITE  = colors.white
+COLOR_RED = colors.red
+COLOR_BLUE = colors.blue
+COLOR_DARK = colors.darkblue
+COLOR_LIGHT = colors.lightgrey
+COLOR_WHITE = colors.white
 COLOR_BORDER = colors.grey
 
 
 # LIGNE DE SÉPARATION
 class HRule(Flowable):
     """Trait horizontal de séparation."""
+
     def __init__(self, width, thickness=1, color=COLOR_BORDER):
         super().__init__()
         self.width = width
@@ -45,20 +55,22 @@ class HRule(Flowable):
 
 # STATISTIQUES
 
+
 class StatCards(Flowable):
     """
     4 cartes colorées sur une ligne :
     [Nb hôpitaux | Total lits | Population | Lits/1000]
     """
+
     def __init__(self, hospital_count, total_beds, total_population, beds_per_1000):
         super().__init__()
-        self.hospital_count   = hospital_count
-        self.total_beds       = total_beds
+        self.hospital_count = hospital_count
+        self.total_beds = total_beds
         self.total_population = total_population
-        self.beds_per_1000    = beds_per_1000
+        self.beds_per_1000 = beds_per_1000
         self.card_h = 2.2 * cm
-        self.gap    = 0.3 * cm
-        self.width  = 0
+        self.gap = 0.3 * cm
+        self.width = 0
 
     def wrap(self, avail_width, avail_height):
         self.width = avail_width
@@ -70,10 +82,10 @@ class StatCards(Flowable):
         card_w = (self.width - (n - 1) * self.gap) / n
 
         cards = [
-            (COLOR_GREEN,  "Hopitaux",        str(self.hospital_count)),
-            (COLOR_ORANGE, "Total lits",      f"{self.total_beds:,}".replace(",", " ")),
-            (COLOR_RED,    "Population",      f"{self.total_population:,}".replace(",", " ")),
-            (COLOR_BLUE,   "Lits / 1 000 hab",str(self.beds_per_1000)),
+            (COLOR_GREEN, "Hopitaux", str(self.hospital_count)),
+            (COLOR_ORANGE, "Total lits", f"{self.total_beds:,}".replace(",", " ")),
+            (COLOR_RED, "Population", f"{self.total_population:,}".replace(",", " ")),
+            (COLOR_BLUE, "Lits / 1 000 hab", str(self.beds_per_1000)),
         ]
 
         for i, (color, label, value) in enumerate(cards):
@@ -94,8 +106,110 @@ class StatCards(Flowable):
             c.drawCentredString(x + card_w / 2, y + self.card_h * 0.18, label)
 
 
+# MINI-CARTE DÉPARTEMENT
+
+
+class DepartmentMiniMap(Flowable):
+    """
+    Projection équirectangulaire des villes du département.
+    Villes : petit point gris. Hôpitaux : disque rouge plus gros.
+    """
+
+    def __init__(self, towns_coords, hospitals_coords, width, height=6 * cm):
+        super().__init__()
+        self.towns = [
+            (lat, lon)
+            for lat, lon in towns_coords
+            if lat is not None and lon is not None
+        ]
+        self.hospitals = [
+            (lat, lon)
+            for lat, lon in hospitals_coords
+            if lat is not None and lon is not None
+        ]
+        self.width = width
+        self.height = height
+
+    def wrap(self, avail_width, avail_height):
+        self.width = avail_width
+        return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+
+        c.setFillColor(COLOR_WHITE)
+        c.setStrokeColor(COLOR_BORDER)
+        c.setLineWidth(0.5)
+        c.roundRect(0, 0, self.width, self.height, 4, fill=1, stroke=1)
+
+        if not self.towns:
+            return
+
+        lats = [lat for lat, _ in self.towns]
+        lons = [lon for _, lon in self.towns]
+        lat_min, lat_max = min(lats), max(lats)
+        lon_min, lon_max = min(lons), max(lons)
+
+        pad_lat = (lat_max - lat_min) * 0.05 or 0.01
+        pad_lon = (lon_max - lon_min) * 0.05 or 0.01
+        lat_min -= pad_lat
+        lat_max += pad_lat
+        lon_min -= pad_lon
+        lon_max += pad_lon
+
+        mean_lat_rad = math.radians((lat_min + lat_max) / 2)
+        cos_lat = math.cos(mean_lat_rad)
+
+        margin = 0.4 * cm
+        inner_w = self.width - 2 * margin
+        inner_h = (
+            self.height - 2 * margin - 0.5 * cm
+        )  # garde de la place pour la légende
+
+        span_x = (lon_max - lon_min) * cos_lat
+        span_y = lat_max - lat_min
+        if span_x <= 0 or span_y <= 0:
+            return
+
+        scale = min(inner_w / span_x, inner_h / span_y)
+        draw_w = span_x * scale
+        draw_h = span_y * scale
+        offset_x = margin + (inner_w - draw_w) / 2
+        offset_y = margin + 0.5 * cm + (inner_h - draw_h) / 2
+
+        def project(lat, lon):
+            x = offset_x + (lon - lon_min) * cos_lat * scale
+            y = offset_y + (lat - lat_min) * scale
+            return x, y
+
+        c.setFillColor(COLOR_BORDER)
+        c.setStrokeColor(COLOR_BORDER)
+        for lat, lon in self.towns:
+            x, y = project(lat, lon)
+            c.circle(x, y, 0.8, fill=1, stroke=0)
+
+        c.setFillColor(COLOR_RED)
+        c.setStrokeColor(colors.white)
+        c.setLineWidth(0.3)
+        for lat, lon in self.hospitals:
+            x, y = project(lat, lon)
+            c.circle(x, y, 2.0, fill=1, stroke=1)
+
+        # Légende
+        c.setFont("Helvetica", 7)
+        c.setFillColor(COLOR_BORDER)
+        c.circle(margin + 0.1 * cm, 0.25 * cm, 0.8, fill=1, stroke=0)
+        c.setFillColor(colors.black)
+        c.drawString(margin + 0.3 * cm, 0.18 * cm, "Commune")
+
+        c.setFillColor(COLOR_RED)
+        c.circle(margin + 2.2 * cm, 0.25 * cm, 2.0, fill=1, stroke=0)
+        c.setFillColor(colors.black)
+        c.drawString(margin + 2.4 * cm, 0.18 * cm, "Hôpital")
+
 
 # TABLEAU VILLES
+
 
 def build_city_table(department_hospitals):
     """Retourne un objet Table ReportLab avec les villes et leurs lits."""
@@ -118,34 +232,38 @@ def build_city_table(department_hospitals):
 
     style = [
         # ── Header ──
-        ("BACKGROUND",   (0, 0), (-1, 0),  COLOR_DARK),
-        ("TEXTCOLOR",    (0, 0), (-1, 0),  COLOR_WHITE),
-        ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
-        ("FONTSIZE",     (0, 0), (-1, 0),  10),
-        ("ALIGN",        (0, 0), (-1, 0),  "CENTER"),
-        ("BOTTOMPADDING",(0, 0), (-1, 0),  8),
-        ("TOPPADDING",   (0, 0), (-1, 0),  8),
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_DARK),
+        ("TEXTCOLOR", (0, 0), (-1, 0), COLOR_WHITE),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
         # ── Lignes de données ──
-        ("FONTNAME",     (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE",     (0, 1), (-1, -1), 9),
-        ("ALIGN",        (1, 1), (1, -1),  "CENTER"),
-        ("TOPPADDING",   (0, 1), (-1, -1), 5),
-        ("BOTTOMPADDING",(0, 1), (-1, -1), 5),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 9),
+        ("ALIGN", (1, 1), (1, -1), "CENTER"),
+        ("TOPPADDING", (0, 1), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
         # ── Grille ──
-        ("GRID",         (0, 0), (-1, -1), 0.5, COLOR_BORDER),
-        ("ROWBACKGROUNDS",(0, 1), (-1, -1), [COLOR_WHITE, COLOR_LIGHT]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_LIGHT]),
     ]
 
     table.setStyle(TableStyle(style))
     return table
 
 
-
 # LES ÉLÉMENTS DE LA PAGE
 
-def build_department_elements(department_code, department_hospitals,
-                               department_towns, department_stats,
-                               page_width):
+
+def build_department_elements(
+    department_code,
+    department_hospitals,
+    department_towns,
+    department_stats,
+    page_width,
+):
     """
     Retourne la liste des Flowables pour un département.
     Étapes :
@@ -173,22 +291,40 @@ def build_department_elements(department_code, department_hospitals,
         textColor=COLOR_DARK,
         spaceAfter=4,
     )
-    elements.append(Paragraph(f"Département {department_code} - {dept_name}", title_style))
+    elements.append(
+        Paragraph(f"Département {department_code} - {dept_name}", title_style)
+    )
     elements.append(Spacer(1, 0.3 * cm))
 
     # LIGNE DE SÉPARATION
     elements.append(HRule(page_width, thickness=2, color=COLOR_DARK))
     elements.append(Spacer(1, 0.4 * cm))
 
-    # STATISTIQUES 
+    # STATISTIQUES
     stats = department_stats.iloc[0]
-    elements.append(StatCards(
-        hospital_count   = int(stats["hospital_count"]),
-        total_beds       = int(stats["total_beds"]),
-        total_population = int(stats["total_population"]),
-        beds_per_1000    = stats["beds_per_1000"],
-    ))
-    elements.append(Spacer(1, 0.6 * cm))
+    elements.append(
+        StatCards(
+            hospital_count=int(stats["hospital_count"]),
+            total_beds=int(stats["total_beds"]),
+            total_population=int(stats["total_population"]),
+            beds_per_1000=stats["beds_per_1000"],
+        )
+    )
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # MINI-CARTE
+    if "lat" in department_towns.columns and "lon" in department_towns.columns:
+        towns_coords = list(
+            zip(department_towns["lat"].tolist(), department_towns["lon"].tolist())
+        )
+        hospitals_coords = list(
+            zip(
+                department_hospitals["lat"].tolist(),
+                department_hospitals["lon"].tolist(),
+            )
+        )
+        elements.append(DepartmentMiniMap(towns_coords, hospitals_coords, page_width))
+        elements.append(Spacer(1, 0.5 * cm))
 
     # SOUS-TITRE TABLEAU
     subtitle_style = ParagraphStyle(
@@ -200,14 +336,14 @@ def build_department_elements(department_code, department_hospitals,
     )
     elements.append(Paragraph("Villes avec hôpital", subtitle_style))
 
-    # TABLEAU DES VILLES 
+    # TABLEAU DES VILLES
     elements.append(build_city_table(department_hospitals))
 
     return elements
 
 
-
 # GÉNÉRATION : UN SEUL DÉPARTEMENT
+
 
 def generate_department_pdf(department_code: str) -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -215,9 +351,10 @@ def generate_department_pdf(department_code: str) -> Path:
     hospitals = load_hospitals()
     towns_status = load_towns_status()
     summary = department_summary(hospitals, towns_status)
+    coords = load_communes_coords()
 
     department_towns, department_hospitals, department_stats = get_department_data(
-        department_code, hospitals, towns_status, summary
+        department_code, hospitals, towns_status, summary, coords
     )
 
     if department_stats.empty:
@@ -237,8 +374,10 @@ def generate_department_pdf(department_code: str) -> Path:
     page_width = A4[0] - 3 * cm
 
     elements = build_department_elements(
-        department_code, department_hospitals,
-        department_towns, department_stats,
+        department_code,
+        department_hospitals,
+        department_towns,
+        department_stats,
         page_width,
     )
 
@@ -246,8 +385,8 @@ def generate_department_pdf(department_code: str) -> Path:
     return pdf_path
 
 
-
 # GÉNÉRATION : TOUS LES DÉPARTEMENTS EN UN PDF
+
 
 def generate_all_departments_in_one_pdf() -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -255,6 +394,7 @@ def generate_all_departments_in_one_pdf() -> Path:
     hospitals = load_hospitals()
     towns_status = load_towns_status()
     summary = department_summary(hospitals, towns_status)
+    coords = load_communes_coords()
 
     department_codes = sorted(
         towns_status["department_code"].dropna().astype(str).unique(),
@@ -278,15 +418,17 @@ def generate_all_departments_in_one_pdf() -> Path:
 
     for index, department_code in enumerate(department_codes):
         department_towns, department_hospitals, department_stats = get_department_data(
-            department_code, hospitals, towns_status, summary
+            department_code, hospitals, towns_status, summary, coords
         )
 
         if department_stats.empty:
             continue
 
         dept_elements = build_department_elements(
-            department_code, department_hospitals,
-            department_towns, department_stats,
+            department_code,
+            department_hospitals,
+            department_towns,
+            department_stats,
             page_width,
         )
         elements.extend(dept_elements)
