@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 import pandas as pd
 
 
@@ -23,6 +24,42 @@ def load_communes_coords() -> pd.DataFrame:
     df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
     df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
     return df.dropna(subset=["lat", "lon"])
+
+
+Ring = List[Tuple[float, float]]  # list of (lat, lon)
+
+
+def load_department_borders() -> Dict[str, List[Ring]]:
+    """Retourne {code_dept_padded: [ring, ring, ...]} où chaque ring est
+    une liste de (lat, lon). Polygon → 1+ rings ; MultiPolygon → tous les
+    rings de tous les polygones concaténés."""
+    with open(INPUT_DIR / "departements.geojson", encoding="utf-8") as f:
+        gj = json.load(f)
+
+    out: Dict[str, List[Ring]] = {}
+    for feature in gj.get("features", []):
+        props = feature.get("properties", {})
+        code = str(props.get("code") or "").strip()
+        if not code:
+            continue
+        geom = feature.get("geometry") or {}
+        gtype = geom.get("type")
+        coords = geom.get("coordinates") or []
+
+        rings: List[Ring] = []
+        if gtype == "Polygon":
+            polygons = [coords]
+        elif gtype == "MultiPolygon":
+            polygons = coords
+        else:
+            continue
+
+        for poly in polygons:
+            for ring in poly:
+                rings.append([(lat, lon) for lon, lat in ring])
+
+        out[code] = rings
+    return out
 
 
 def load_hospitals() -> pd.DataFrame:

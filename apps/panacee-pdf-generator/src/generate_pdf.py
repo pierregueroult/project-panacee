@@ -20,6 +20,7 @@ from load_data import (
     department_summary,
     get_department_data,
     load_communes_coords,
+    load_department_borders,
     load_hospitals,
     load_towns_status,
 )
@@ -115,7 +116,8 @@ class DepartmentMiniMap(Flowable):
     Villes : petit point gris. Hôpitaux : disque rouge plus gros.
     """
 
-    def __init__(self, towns_coords, hospitals_coords, width, height=6 * cm):
+    def __init__(self, towns_coords, hospitals_coords, width, border_rings=None,
+                 height=6 * cm):
         super().__init__()
         self.towns = [
             (lat, lon)
@@ -127,6 +129,7 @@ class DepartmentMiniMap(Flowable):
             for lat, lon in hospitals_coords
             if lat is not None and lon is not None
         ]
+        self.border_rings = border_rings or []
         self.width = width
         self.height = height
 
@@ -142,11 +145,14 @@ class DepartmentMiniMap(Flowable):
         c.setLineWidth(0.5)
         c.roundRect(0, 0, self.width, self.height, 4, fill=1, stroke=1)
 
-        if not self.towns:
+        if not self.towns and not self.border_rings:
             return
 
-        lats = [lat for lat, _ in self.towns]
-        lons = [lon for _, lon in self.towns]
+        bbox_points = list(self.towns)
+        for ring in self.border_rings:
+            bbox_points.extend(ring)
+        lats = [lat for lat, _ in bbox_points]
+        lons = [lon for _, lon in bbox_points]
         lat_min, lat_max = min(lats), max(lats)
         lon_min, lon_max = min(lons), max(lons)
 
@@ -181,6 +187,24 @@ class DepartmentMiniMap(Flowable):
             x = offset_x + (lon - lon_min) * cos_lat * scale
             y = offset_y + (lat - lat_min) * scale
             return x, y
+
+        # Contour du département
+        if self.border_rings:
+            c.setStrokeColor(COLOR_DARK)
+            c.setFillColor(colors.HexColor("#f5f5f5"))
+            c.setLineWidth(0.6)
+            for ring in self.border_rings:
+                if len(ring) < 2:
+                    continue
+                p = c.beginPath()
+                lat0, lon0 = ring[0]
+                x0, y0 = project(lat0, lon0)
+                p.moveTo(x0, y0)
+                for lat, lon in ring[1:]:
+                    x, y = project(lat, lon)
+                    p.lineTo(x, y)
+                p.close()
+                c.drawPath(p, stroke=1, fill=1)
 
         c.setFillColor(COLOR_BORDER)
         c.setStrokeColor(COLOR_BORDER)
@@ -298,6 +322,7 @@ def build_department_elements(
     department_towns,
     department_stats,
     page_width,
+    border_rings=None,
 ):
     """
     Retourne la liste des Flowables pour un département.
@@ -358,7 +383,12 @@ def build_department_elements(
                 department_hospitals["lon"].tolist(),
             )
         )
-        elements.append(DepartmentMiniMap(towns_coords, hospitals_coords, page_width))
+        elements.append(
+            DepartmentMiniMap(
+                towns_coords, hospitals_coords, page_width,
+                border_rings=border_rings,
+            )
+        )
         elements.append(Spacer(1, 0.5 * cm))
 
     # SOUS-TITRE TABLEAU
@@ -387,6 +417,7 @@ def generate_department_pdf(department_code: str) -> Path:
     towns_status = load_towns_status()
     summary = department_summary(hospitals, towns_status)
     coords = load_communes_coords()
+    borders = load_department_borders()
 
     department_towns, department_hospitals, department_stats = get_department_data(
         department_code, hospitals, towns_status, summary, coords
@@ -414,6 +445,7 @@ def generate_department_pdf(department_code: str) -> Path:
         department_towns,
         department_stats,
         page_width,
+        border_rings=borders.get(department_code.zfill(2)),
     )
 
     doc.build(elements)
@@ -430,6 +462,7 @@ def generate_all_departments_in_one_pdf() -> Path:
     towns_status = load_towns_status()
     summary = department_summary(hospitals, towns_status)
     coords = load_communes_coords()
+    borders = load_department_borders()
 
     department_codes = sorted(
         towns_status["department_code"].dropna().astype(str).unique(),
@@ -465,6 +498,7 @@ def generate_all_departments_in_one_pdf() -> Path:
             department_towns,
             department_stats,
             page_width,
+            border_rings=borders.get(department_code.zfill(2)),
         )
         elements.extend(dept_elements)
 
