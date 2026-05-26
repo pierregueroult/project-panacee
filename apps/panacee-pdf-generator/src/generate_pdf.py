@@ -211,10 +211,43 @@ class DepartmentMiniMap(Flowable):
 # TABLEAU VILLES
 
 
-def build_city_table(department_hospitals):
-    """Retourne un objet Table ReportLab avec les villes et leurs lits."""
-    table_data = [["Ville", "Nombre de lits"]]
+CITY_TABLE_SPLIT_THRESHOLD = 15
 
+
+def _city_table_style():
+    return TableStyle(
+        [
+            # ── Header ──
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_DARK),
+            ("TEXTCOLOR", (0, 0), (-1, 0), COLOR_WHITE),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 10),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("TOPPADDING", (0, 0), (-1, 0), 8),
+            # ── Lignes de données ──
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 1), (-1, -1), 9),
+            ("ALIGN", (1, 1), (1, -1), "CENTER"),
+            ("TOPPADDING", (0, 1), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+            # ── Grille ──
+            ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_LIGHT]),
+        ]
+    )
+
+
+def _make_city_subtable(rows, col_widths):
+    data = [["Ville", "Nombre de lits"]] + rows
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(_city_table_style())
+    return table
+
+
+def build_city_table(department_hospitals, page_width):
+    """Retourne un Flowable : tableau simple, ou 2 sous-tableaux côte à côte
+    si la liste est longue (pour éviter le débordement sur la page suivante)."""
     displayed = (
         department_hospitals[["name", "beds_count"]]
         .dropna()
@@ -222,36 +255,38 @@ def build_city_table(department_hospitals):
     )
 
     if displayed.empty:
-        table_data.append(["Aucun hôpital", "-"])
-    else:
-        for _, row in displayed.iterrows():
-            table_data.append([row["name"], int(row["beds_count"])])
+        return _make_city_subtable([["Aucun hôpital", "-"]], [9 * cm, 5 * cm])
 
-    col_widths = [9 * cm, 5 * cm]
-    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    rows = [[r["name"], int(r["beds_count"])] for _, r in displayed.iterrows()]
 
-    style = [
-        # ── Header ──
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_DARK),
-        ("TEXTCOLOR", (0, 0), (-1, 0), COLOR_WHITE),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 10),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ("TOPPADDING", (0, 0), (-1, 0), 8),
-        # ── Lignes de données ──
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 1), (-1, -1), 9),
-        ("ALIGN", (1, 1), (1, -1), "CENTER"),
-        ("TOPPADDING", (0, 1), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
-        # ── Grille ──
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_LIGHT]),
-    ]
+    if len(rows) <= CITY_TABLE_SPLIT_THRESHOLD:
+        return _make_city_subtable(rows, [9 * cm, 5 * cm])
 
-    table.setStyle(TableStyle(style))
-    return table
+    # Split en 2 colonnes côte à côte
+    gap = 0.4 * cm
+    half_w = (page_width - gap) / 2
+    name_w = half_w * 0.65
+    beds_w = half_w - name_w
+
+    mid = (len(rows) + 1) // 2
+    left = _make_city_subtable(rows[:mid], [name_w, beds_w])
+    right = _make_city_subtable(rows[mid:], [name_w, beds_w])
+
+    outer = Table(
+        [[left, right]],
+        colWidths=[half_w, half_w],
+        style=TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (0, 0), gap),
+                ("RIGHTPADDING", (1, 0), (1, 0), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        ),
+    )
+    return outer
 
 
 # LES ÉLÉMENTS DE LA PAGE
@@ -337,7 +372,7 @@ def build_department_elements(
     elements.append(Paragraph("Villes avec hôpital", subtitle_style))
 
     # TABLEAU DES VILLES
-    elements.append(build_city_table(department_hospitals))
+    elements.append(build_city_table(department_hospitals, page_width))
 
     return elements
 
