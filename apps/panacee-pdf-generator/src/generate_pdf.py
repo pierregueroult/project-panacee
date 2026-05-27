@@ -36,9 +36,9 @@ COLOR_WHITE = colors.white
 COLOR_BORDER = colors.grey
 
 
-# LIGNE DE SÉPARATION
+# SEPARATOR LINE
 class HRule(Flowable):
-    """Trait horizontal de séparation."""
+    """Horizontal separator line."""
 
     def __init__(self, width, thickness=1, color=COLOR_BORDER):
         super().__init__()
@@ -55,13 +55,13 @@ class HRule(Flowable):
         return self.width, self.thickness + 2
 
 
-# STATISTIQUES
+# STATISTICS
 
 
 class StatCards(Flowable):
     """
-    4 cartes colorées sur une ligne :
-    [Nb hôpitaux | Total lits | Population | Lits/1000]
+    4 colored cards on a single row:
+    [Hospital count | Total beds | Population | Beds/1000]
     """
 
     def __init__(self, hospital_count, total_beds, total_population, beds_per_1000):
@@ -94,22 +94,22 @@ class StatCards(Flowable):
             x = i * (card_w + self.gap)
             y = 0
 
-            # Fond de la carte
+            # Card background
             c.setFillColor(color)
             c.roundRect(x, y, card_w, self.card_h, 6, fill=1, stroke=0)
 
-            # Valeur (grande, blanche, en haut)
+            # Value (large, white, top)
             c.setFillColor(COLOR_WHITE)
             c.setFont("Helvetica-Bold", 16)
             c.drawCentredString(x + card_w / 2, y + self.card_h * 0.52, value)
 
-            # Label (petit, blanc, en bas)
+            # Label (small, white, bottom)
             c.setFont("Helvetica", 8)
             c.drawCentredString(x + card_w / 2, y + self.card_h * 0.18, label)
 
 
 class StatGrid(Flowable):
-    """Grille N colonnes × M lignes de cartes colorées (color, label, value)."""
+    """Grid of N columns x M rows of colored cards (color, label, value)."""
 
     def __init__(self, cards, cols=4, card_h=2.2 * cm, gap=0.3 * cm):
         super().__init__()
@@ -147,13 +147,13 @@ class StatGrid(Flowable):
             c.drawCentredString(x + card_w / 2, y + self.card_h * 0.18, label)
 
 
-# MINI-CARTE DÉPARTEMENT
+# DEPARTMENT MINI-MAP
 
 
 class DepartmentMiniMap(Flowable):
     """
-    Projection équirectangulaire des villes du département.
-    Villes : petit point gris. Hôpitaux : disque rouge plus gros.
+    Equirectangular projection of the department's towns.
+    Towns: small grey dot. Hospitals: larger red disc.
     """
 
     def __init__(self, towns_coords, hospitals_coords, width, border_rings=None,
@@ -212,7 +212,7 @@ class DepartmentMiniMap(Flowable):
         inner_w = self.width - 2 * margin
         inner_h = (
             self.height - 2 * margin - 0.5 * cm
-        )  # garde de la place pour la légende
+        )  # leave room for the legend
 
         span_x = (lon_max - lon_min) * cos_lat
         span_y = lat_max - lat_min
@@ -230,7 +230,7 @@ class DepartmentMiniMap(Flowable):
             y = offset_y + (lat - lat_min) * scale
             return x, y
 
-        # Contour du département
+        # Department outline
         if self.border_rings:
             c.setStrokeColor(COLOR_DARK)
             c.setFillColor(colors.HexColor("#f5f5f5"))
@@ -261,7 +261,7 @@ class DepartmentMiniMap(Flowable):
             x, y = project(lat, lon)
             c.circle(x, y, self.hospital_radius, fill=1, stroke=1)
 
-        # Légende
+        # Legend
         c.setFont("Helvetica", 7)
         c.setFillColor(COLOR_BORDER)
         c.circle(margin + 0.1 * cm, 0.25 * cm, 0.8, fill=1, stroke=0)
@@ -274,7 +274,7 @@ class DepartmentMiniMap(Flowable):
         c.drawString(margin + 2.4 * cm, 0.18 * cm, "Hôpital")
 
 
-# TABLEAU VILLES
+# CITY TABLE
 
 
 CITY_TABLE_SPLIT_THRESHOLD = 15
@@ -283,7 +283,7 @@ CITY_TABLE_SPLIT_THRESHOLD = 15
 def _city_table_style():
     return TableStyle(
         [
-            # ── Header ──
+            # -- Header --
             ("BACKGROUND", (0, 0), (-1, 0), COLOR_DARK),
             ("TEXTCOLOR", (0, 0), (-1, 0), COLOR_WHITE),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
@@ -291,13 +291,13 @@ def _city_table_style():
             ("ALIGN", (0, 0), (-1, 0), "CENTER"),
             ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
             ("TOPPADDING", (0, 0), (-1, 0), 8),
-            # ── Lignes de données ──
+            # -- Data rows --
             ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
             ("FONTSIZE", (0, 1), (-1, -1), 9),
             ("ALIGN", (1, 1), (1, -1), "CENTER"),
             ("TOPPADDING", (0, 1), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
-            # ── Grille ──
+            # -- Grid --
             ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_LIGHT]),
         ]
@@ -312,8 +312,8 @@ def _make_city_subtable(rows, col_widths):
 
 
 def build_city_table(department_hospitals, page_width):
-    """Retourne un Flowable : tableau simple, ou 2 sous-tableaux côte à côte
-    si la liste est longue (pour éviter le débordement sur la page suivante)."""
+    """Returns a Flowable: a single table, or 2 sub-tables side by side
+    when the list is long (to avoid overflowing onto the next page)."""
     displayed = (
         department_hospitals[["name", "beds_count"]]
         .dropna()
@@ -328,7 +328,7 @@ def build_city_table(department_hospitals, page_width):
     if len(rows) <= CITY_TABLE_SPLIT_THRESHOLD:
         return _make_city_subtable(rows, [9 * cm, 5 * cm])
 
-    # Split en 2 colonnes côte à côte
+    # Split into 2 side-by-side columns
     gap = 0.4 * cm
     half_w = (page_width - gap) / 2
     name_w = half_w * 0.65
@@ -355,7 +355,7 @@ def build_city_table(department_hospitals, page_width):
     return outer
 
 
-# LES ÉLÉMENTS DE LA PAGE
+# PAGE ELEMENTS
 
 
 def _fmt_int(v):
@@ -367,7 +367,7 @@ def _fmt_pct(v):
 
 
 def build_cover_elements(hospitals, towns_coords_df, fitness, borders, page_width):
-    """Page de garde : titre, carte de France entière, statistiques globales."""
+    """Cover page: title, full France map, global statistics."""
     elements = []
 
     title_style = ParagraphStyle(
@@ -396,7 +396,7 @@ def build_cover_elements(hospitals, towns_coords_df, fitness, borders, page_widt
     elements.append(HRule(page_width, thickness=2, color=COLOR_DARK))
     elements.append(Spacer(1, 0.6 * cm))
 
-    # Carte de France entière
+    # Full France map
     towns_xy = list(zip(towns_coords_df["lat"].tolist(),
                         towns_coords_df["lon"].tolist()))
     hosp_xy = list(zip(hospitals["lat"].tolist(),
@@ -414,7 +414,7 @@ def build_cover_elements(hospitals, towns_coords_df, fitness, borders, page_widt
     )
     elements.append(Spacer(1, 0.6 * cm))
 
-    # Statistiques globales (fitness.csv, sans fitness_average)
+    # Global statistics (fitness.csv, without fitness_average)
     f = fitness.iloc[0]
     cards = [
         (COLOR_GREEN,  "Hôpitaux",              _fmt_int(f["hospital_count"])),
@@ -440,13 +440,13 @@ def build_department_elements(
     border_rings=None,
 ):
     """
-    Retourne la liste des Flowables pour un département.
-    Étapes :
-      1. Titre  (numéro + nom du département)
-      2. Ligne de séparation
-      3. 4 cartes de statistiques
-      4. Sous-titre "Villes avec hôpital"
-      5. Tableau des villes
+    Returns the list of Flowables for a department.
+    Steps:
+      1. Title (number + department name)
+      2. Separator line
+      3. 4 statistics cards
+      4. "Cities with hospital" subtitle
+      5. City table
     """
     elements = []
 
@@ -471,11 +471,11 @@ def build_department_elements(
     )
     elements.append(Spacer(1, 0.3 * cm))
 
-    # LIGNE DE SÉPARATION
+    # SEPARATOR LINE
     elements.append(HRule(page_width, thickness=2, color=COLOR_DARK))
     elements.append(Spacer(1, 0.4 * cm))
 
-    # STATISTIQUES
+    # STATISTICS
     stats = department_stats.iloc[0]
     elements.append(
         StatCards(
@@ -487,7 +487,7 @@ def build_department_elements(
     )
     elements.append(Spacer(1, 0.5 * cm))
 
-    # MINI-CARTE
+    # MINI-MAP
     if "lat" in department_towns.columns and "lon" in department_towns.columns:
         towns_coords = list(
             zip(department_towns["lat"].tolist(), department_towns["lon"].tolist())
@@ -506,7 +506,7 @@ def build_department_elements(
         )
         elements.append(Spacer(1, 0.5 * cm))
 
-    # SOUS-TITRE TABLEAU
+    # TABLE SUBTITLE
     subtitle_style = ParagraphStyle(
         "SubTitle",
         fontName="Helvetica-Bold",
@@ -516,13 +516,13 @@ def build_department_elements(
     )
     elements.append(Paragraph("Villes avec hôpital", subtitle_style))
 
-    # TABLEAU DES VILLES
+    # CITY TABLE
     elements.append(build_city_table(department_hospitals, page_width))
 
     return elements
 
 
-# GÉNÉRATION : UN SEUL DÉPARTEMENT
+# GENERATION: SINGLE DEPARTMENT
 
 
 def generate_department_pdf(department_code: str) -> Path:
@@ -567,7 +567,7 @@ def generate_department_pdf(department_code: str) -> Path:
     return pdf_path
 
 
-# GÉNÉRATION : TOUS LES DÉPARTEMENTS EN UN PDF
+# GENERATION: ALL DEPARTMENTS IN ONE PDF
 
 
 def generate_all_departments_in_one_pdf() -> Path:

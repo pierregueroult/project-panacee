@@ -30,9 +30,9 @@ Ring = List[Tuple[float, float]]  # list of (lat, lon)
 
 
 def load_department_borders() -> Dict[str, List[Ring]]:
-    """Retourne {code_dept_padded: [ring, ring, ...]} où chaque ring est
-    une liste de (lat, lon). Polygon → 1+ rings ; MultiPolygon → tous les
-    rings de tous les polygones concaténés."""
+    """Returns {padded_dept_code: [ring, ring, ...]} where each ring is
+    a list of (lat, lon). Polygon -> 1+ rings; MultiPolygon -> all rings
+    from all polygons concatenated."""
     with open(INPUT_DIR / "departements.geojson", encoding="utf-8") as f:
         gj = json.load(f)
 
