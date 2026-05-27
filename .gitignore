@@ -45,3 +45,7 @@ panacee-no-mlv
 dist
 
 docs/libraries/mlv
+
+.venv/
+__pycache__/
+*.pyc

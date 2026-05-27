@@ -260,10 +260,10 @@ Individual run_genetic(const Town *towns, int town_count)
                (double)total_beds / (covered_inhabitants / 1000.0),
                BEDS_PER_INHABITANT);
 
-    export_result_csv(&result, towns, insee_to_idx, "./src/results/hospitals.csv");
-    export_fitness_csv(&result.fitness, "./src/results/fitness.csv");
+    export_result_csv(&result, towns, insee_to_idx, "../../data/output/hospitals.csv");
+    export_fitness_csv(&result.fitness, "../../data/output/fitness.csv");
     export_towns_status_csv(&result, towns, town_count, insee_to_idx, coverage,
-                            coverage_size, "./src/results/towns_status.csv");
+                            coverage_size, "../../data/output/towns_status.csv");
 
     covered_overlay = calloc(town_count, 1);
     compute_covered(covered_overlay, &result, town_count,
