@@ -1,9 +1,10 @@
 // Paths are served as static files by JExpress from the project root.
-// All three CSVs are written by the genetic algorithm before the map is opened.
+// hospitals and fitness are written by the genetic algorithm to data/output/
+// (path is relative to the project root, matching the C binary's export target).
 const PATHS = {
-  communes:  '/data/communes-france-metrople-2025.csv',
-  hospitals: '/apps/panacee-genetics/src/results/hospitals.csv',
-  fitness:   '/apps/panacee-genetics/src/results/fitness.csv',
+  communes:  '/data/input/communes-france-metrople-2025.csv',
+  hospitals: '/data/output/hospitals.csv',
+  fitness:   '/data/output/fitness.csv',
 };
 
 // Bed-count thresholds that drive both marker colour and the sidebar legend.
@@ -165,33 +166,60 @@ function renderStats(fitness, hospitals) {
     },
   ];
 
-  let html = '';
-  for (const card of cards) {
-    const subHtml = card.sub !== null ? `<div class="stat-sub">${card.sub}</div>` : '';
-    html += `
-      <div class="stat-card">
-        <span class="stat-icon">${card.icon}</span>
-        <div>
-          <div class="stat-value">${card.value}</div>
-          <div class="stat-label">${card.label}</div>
-          ${subHtml}
-        </div>
-      </div>`;
-  }
+  const grid = document.getElementById('stats-grid');
+  grid.textContent = '';
 
-  document.getElementById('stats-grid').innerHTML = html;
+  for (const card of cards) {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'stat-card';
+
+    const iconEl = document.createElement('span');
+    iconEl.className = 'stat-icon';
+    iconEl.textContent = card.icon;
+    cardEl.appendChild(iconEl);
+
+    const innerEl = document.createElement('div');
+
+    const valueEl = document.createElement('div');
+    valueEl.className = 'stat-value';
+    valueEl.textContent = card.value;
+    innerEl.appendChild(valueEl);
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'stat-label';
+    labelEl.textContent = card.label;
+    innerEl.appendChild(labelEl);
+
+    if (card.sub !== null) {
+      const subEl = document.createElement('div');
+      subEl.className = 'stat-sub';
+      subEl.textContent = card.sub;
+      innerEl.appendChild(subEl);
+    }
+
+    cardEl.appendChild(innerEl);
+    grid.appendChild(cardEl);
+  }
 }
 
 function renderLegend() {
-  let html = '';
+  const legend = document.getElementById('legend');
+
   for (const entry of COLOR_SCALE) {
-    html += `
-      <div class="legend-row">
-        <span class="legend-dot" style="background: ${entry.color}"></span>
-        <span>${entry.label}</span>
-      </div>`;
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+
+    const dot = document.createElement('span');
+    dot.className = 'legend-dot';
+    dot.style.background = entry.color;
+    row.appendChild(dot);
+
+    const label = document.createElement('span');
+    label.textContent = entry.label;
+    row.appendChild(label);
+
+    legend.appendChild(row);
   }
-  document.getElementById('legend').innerHTML = html;
 }
 
 function populateDeptFilter(hospitals) {
@@ -217,13 +245,38 @@ function populateDeptFilter(hospitals) {
 function showDetail(hospital) {
   const populationText = hospital.pop ? formatNumber(hospital.pop) : '—';
 
-  document.getElementById('detail-content').innerHTML = `
-    <div class="detail-name">${hospital.name}</div>
-    <div class="detail-loc">${hospital.dept} (${hospital.deptCode}) · ${hospital.region}</div>
-    <div class="detail-row"><span>Lits</span><strong>${formatNumber(hospital.beds)}</strong></div>
-    <div class="detail-row"><span>Population</span><strong>${populationText}</strong></div>
-    <div class="detail-row"><span>Code INSEE</span><strong>${hospital.insee}</strong></div>
-  `;
+  const content = document.getElementById('detail-content');
+  content.textContent = '';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'detail-name';
+  nameEl.textContent = hospital.name;
+  content.appendChild(nameEl);
+
+  const locEl = document.createElement('div');
+  locEl.className = 'detail-loc';
+  locEl.textContent = hospital.dept + ' (' + hospital.deptCode + ') · ' + hospital.region;
+  content.appendChild(locEl);
+
+  function addRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'detail-row';
+
+    const span = document.createElement('span');
+    span.textContent = label;
+    row.appendChild(span);
+
+    const strong = document.createElement('strong');
+    strong.textContent = value;
+    row.appendChild(strong);
+
+    content.appendChild(row);
+  }
+
+  addRow('Lits', formatNumber(hospital.beds));
+  addRow('Population', populationText);
+  addRow('Code INSEE', hospital.insee);
+
   document.getElementById('detail-section').style.display = '';
 }
 
