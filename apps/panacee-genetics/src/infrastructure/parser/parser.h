@@ -3,6 +3,6 @@
 
 #include "../../domain/town/town.h"
 
-Town *parse(int *count);
+Town *parse(const char *path, int *count);
 
 #endif

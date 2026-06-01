@@ -3,7 +3,7 @@
 
 /* Initialize population: 80% greedy individuals for a strong start,
    20% random for diversity. */
-Population init_population(Town *towns, int town_count,
+Population init_population(const Town *towns, int town_count,
                            int **coverage, const int *coverage_size)
 {
     int i;
@@ -56,7 +56,7 @@ Individual best_individual(const Population *pop)
 }
 
 /* Evaluate all individuals in a population */
-void evaluate_population(Population *pop, Town *towns, int town_count,
+void evaluate_population(Population *pop, const Town *towns, int town_count,
                          const int *insee_to_idx, int **coverage,
                          const int *coverage_size, int total_inhabitants)
 {
