@@ -3,10 +3,7 @@
 #include "../color/color.h"
 
 #include <math.h>
-
-#ifdef USE_MLV
 #include <MLV/MLV_all.h>
-#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -39,8 +36,6 @@ BoundingBox get_bounding_box(const Town *towns, int count)
 
     return box;
 }
-
-#ifdef USE_MLV
 
 static int project_x(const MapView *v, double longitude)
 {
@@ -103,11 +98,8 @@ static void clear_sidebar(const MapView *v)
 
 static int sidebar_text_x(const MapView *v) { return v->sidebar_x + v->padding; }
 
-#endif /* USE_MLV */
-
 int map_init(MapView *view, const Town *towns, int town_count)
 {
-#ifdef USE_MLV
     int desktop_h;
     double lat_span, lon_span;
 
@@ -144,40 +136,26 @@ int map_init(MapView *view, const Town *towns, int town_count)
     MLV_create_window("Panacée Genetics", "Panacée Genetics",
                       view->map_width + view->sidebar_w, view->height);
     return 1;
-#else
-    (void)towns;
-    (void)town_count;
-    view->initialised = 0;
-    return 0;
-#endif
 }
 
 void map_close(MapView *view)
 {
-#ifdef USE_MLV
     if (view->initialised)
     {
         MLV_free_window();
         view->initialised = 0;
     }
-#else
-    (void)view;
-#endif
 }
 
 void map_draw_loading(const MapView *v, const Town *towns, int town_count,
                       const char *message)
 {
-#ifdef USE_MLV
     if (!v->initialised) return;
     MLV_clear_window(MLV_COLOR_BLACK);
     draw_country(v, towns, town_count);
     MLV_draw_line(v->sidebar_x, 0, v->sidebar_x, v->height, MLV_COLOR_WHITE);
     MLV_draw_text(sidebar_text_x(v), v->height / 2, message, MLV_COLOR_WHITE);
     MLV_actualise_window();
-#else
-    (void)v; (void)towns; (void)town_count; (void)message;
-#endif
 }
 
 void map_draw_state(const MapView *v, const Town *towns, int town_count,
@@ -186,7 +164,6 @@ void map_draw_state(const MapView *v, const Town *towns, int town_count,
                     double mutation_rate, double avg_fitness,
                     int redraw_map)
 {
-#ifdef USE_MLV
     int tx, ty;
 
     if (!v->initialised) return;
@@ -238,18 +215,12 @@ void map_draw_state(const MapView *v, const Town *towns, int town_count,
     MLV_draw_text(tx, ty, "Mutation         : %.2f", MLV_COLOR_WHITE,
                   mutation_rate);
     MLV_actualise_window();
-#else
-    (void)v; (void)towns; (void)town_count; (void)best; (void)insee_to_idx;
-    (void)generation; (void)stagnation; (void)stagnation_limit;
-    (void)mutation_rate; (void)avg_fitness; (void)redraw_map;
-#endif
 }
 
 void map_draw_final(const MapView *v, const Town *towns, int town_count,
                     const Individual *result, const int *insee_to_idx,
                     const char *covered, int total_beds)
 {
-#ifdef USE_MLV
     int tx, ty;
 
     if (!v->initialised) return;
@@ -290,8 +261,4 @@ void map_draw_final(const MapView *v, const Town *towns, int town_count,
     MLV_draw_text(tx, ty, "Touche pour quitter...", MLV_COLOR_WHITE);
     MLV_actualise_window();
     MLV_wait_keyboard(NULL, NULL, NULL);
-#else
-    (void)v; (void)towns; (void)town_count; (void)result;
-    (void)insee_to_idx; (void)covered; (void)total_beds;
-#endif
 }

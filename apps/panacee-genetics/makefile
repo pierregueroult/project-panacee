@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -Wall -ansi -g -DUSE_MLV
+CFLAGS = -Wall -ansi -g
 LDFLAGS =
 
 # Linux (pkg-config standard) :
