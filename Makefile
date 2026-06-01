@@ -45,13 +45,17 @@ build:
 
 run: init build
 	@mkdir -p "$(DATA_OUTPUT_DIR)"
+	@rm -f "$(DATA_OUTPUT_DIR)/fitness.csv"
 	@echo "==> Starting C binary"
-	@cd $(GEN_DIR) && ./panacee && \
-	echo "==> Starting Python application" && \
-	$(VENV_PY) "$(DOCS_DIR)/src/main.py"
-	echo "==> Starting map server"; \
-	cd "$(MAP_DIR)" && java JExpress.java & \
-	sleep 1 && open "$(MAP_URL)"
+	@cd "$(GEN_DIR)" && ./panacee &
+	@echo "==> Waiting for algorithm to finish..."
+	@while [ ! -f "$(DATA_OUTPUT_DIR)/fitness.csv" ]; do sleep 1; done
+	@echo "==> Starting Python application"
+	@$(VENV_PY) "$(DOCS_DIR)/src/main.py"
+	@echo "==> Starting map server"
+	@cd "$(MAP_DIR)" && java JExpress.java &
+	@sleep 3
+	@open "$(MAP_URL)"
 clean:
 	@echo "==> Cleaning C build and Python bytecode"
 	@$(MAKE) -C $(GEN_DIR) clean || true
