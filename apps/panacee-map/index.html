@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panacée — Carte des Hôpitaux</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Shown while the three CSVs are being fetched and parsed -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Chargement des données…</p>
+    </div>
+
+    <!-- Main layout: sidebar on the left, full-height map on the right -->
+    <div id="app" class="hidden">
+      <aside id="sidebar">
+        <div class="sidebar-header">
+          <div>
+            <h1>PANACÉE</h1>
+            <p class="subtitle">Algorithme Génétique · Résultats</p>
+          </div>
+        </div>
+
+        <!-- Key fitness metrics from the last genetic run -->
+        <div class="section">
+          <h2>Métriques</h2>
+          <div id="stats-grid" class="stats-grid"></div>
+        </div>
+
+        <!-- Department and minimum-beds filters; wired in app.js wireFilters() -->
+        <div class="section">
+          <h2>Filtres</h2>
+          <label class="field-label"
+            >Département
+            <select id="dept-filter">
+              <option value="">Tous les départements</option>
+            </select>
+          </label>
+          <label class="field-label">
+            <span>Lits minimum : <strong id="beds-min-val">0</strong></span>
+            <input
+              type="range"
+              id="beds-min"
+              min="0"
+              max="1000"
+              value="0"
+              step="25"
+            />
+          </label>
+          <div class="filter-footer">
+            <span id="hospital-count" class="count-badge">— hôpitaux</span>
+            <button id="reset-btn">Réinitialiser</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Légende — Lits</h2>
+          <div id="legend" class="legend"></div>
+        </div>
+
+        <!-- Hidden until the user clicks a hospital marker -->
+        <div class="section" id="detail-section" style="display: none">
+          <h2>Hôpital sélectionné</h2>
+          <div id="detail-content" class="detail-card"></div>
+        </div>
+      </aside>
+
+      <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
