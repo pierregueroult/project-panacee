@@ -1,8 +1,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "../../domain/individual/individual.h"
-#include "../../domain/town/town.h"
+#include "../../model/individual/individual.h"
+#include "../../model/town/town.h"
 
 typedef struct {
     double min_lat;

@@ -1,11 +1,11 @@
-#include "../../genetic.h"
+#include "town.h"
+#include "../config.h"
 #include <math.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 double haversine_km(double lat1, double lon1, double lat2, double lon2)
@@ -37,7 +37,6 @@ void precompute_coverage(const Town *towns, int town_count,
     *coverage = malloc(town_count * sizeof(int *));
     *coverage_size = malloc(town_count * sizeof(int));
 
-    printf("Precomputing coverage map...\n");
     for (i = 0; i < town_count; i++)
     {
         cnt = 0;
@@ -61,7 +60,6 @@ void precompute_coverage(const Town *towns, int town_count,
         (*coverage_size)[i] = cnt;
     }
     free(tmp);
-    printf("Coverage map done.\n");
 }
 
 void nearest_hospital_per_town(const Hospital *hospitals, int hospital_count,

@@ -1,5 +1,5 @@
-#include "genetic.h"
-#include "infrastructure/parser/parser.h"
+#include "controller/genetic_controller.h"
+#include "model/io/parser/parser.h"
 
 #include <stdio.h>
 #include <stdlib.h>

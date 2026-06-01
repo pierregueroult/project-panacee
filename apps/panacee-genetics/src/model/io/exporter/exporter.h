@@ -1,9 +1,9 @@
 #ifndef EXPORTER_H
 #define EXPORTER_H
 
-#include "../../domain/fitness/fitness.h"
-#include "../../domain/individual/individual.h"
-#include "../../domain/town/town.h"
+#include "../../fitness/fitness.h"
+#include "../../individual/individual.h"
+#include "../../town/town.h"
 
 void export_fitness_csv(const Fitness *fitness, const char *path);
 void export_result_csv(const Individual *result, const Town *towns,

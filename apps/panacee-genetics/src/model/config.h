@@ -1,8 +1,7 @@
-#ifndef GENETIC_H
-#define GENETIC_H
+#ifndef CONFIG_H
+#define CONFIG_H
 
-#include "domain/individual/individual.h"
-#include "domain/population/population.h"
+/* Genetic algorithm tuning parameters and domain constants. */
 
 #define EARTH_RADIUS_KM 6371.0
 #define RADIUS_HOSPITAL_KM 10.0     /* coverage radius of a hospital (km)         */
@@ -21,7 +20,5 @@
 
 #define INSEE_MAX 100000
 #define INFINITY_KM 1e18
-
-Individual run_genetic(const Town *towns, int town_count);
 
 #endif

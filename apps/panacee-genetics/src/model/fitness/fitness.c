@@ -1,4 +1,5 @@
-#include "../../genetic.h"
+#include "fitness.h"
+#include "../config.h"
 #include <stdlib.h>
 
 double calculate_fitness_score(int total_inhabitants,

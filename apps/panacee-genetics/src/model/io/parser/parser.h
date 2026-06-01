@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../../domain/town/town.h"
+#include "../../town/town.h"
 
 Town *parse(const char *path, int *count);
 

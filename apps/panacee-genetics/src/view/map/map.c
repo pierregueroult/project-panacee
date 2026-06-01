@@ -1,5 +1,5 @@
 #include "map.h"
-#include "../../genetic.h"
+#include "../../model/config.h"
 #include "../color/color.h"
 
 #include <math.h>
