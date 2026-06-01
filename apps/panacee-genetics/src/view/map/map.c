@@ -161,7 +161,7 @@ void map_draw_loading(const MapView *v, const Town *towns, int town_count,
 void map_draw_state(const MapView *v, const Town *towns, int town_count,
                     const Individual *best, const int *insee_to_idx,
                     int generation, int stagnation, int stagnation_limit,
-                    double mutation_rate, double avg_fitness,
+                    double mutation_rate,
                     int redraw_map)
 {
     int tx, ty;
@@ -205,9 +205,6 @@ void map_draw_state(const MapView *v, const Town *towns, int town_count,
     ty += MAP_LINE_HEIGHT;
     MLV_draw_text(tx, ty, "Taille population: %d", MLV_COLOR_WHITE,
                   POPULATION_SIZE);
-    ty += MAP_LINE_HEIGHT;
-    MLV_draw_text(tx, ty, "Fitness moyenne  : %.0f", MLV_COLOR_WHITE,
-                  avg_fitness);
     ty += MAP_LINE_HEIGHT;
     MLV_draw_text(tx, ty, "Stagnation       : %d / %d", MLV_COLOR_WHITE,
                   stagnation, stagnation_limit);

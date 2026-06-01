@@ -114,7 +114,6 @@ Individual run_genetic(const Town *towns, int town_count)
                        &current_best, insee_to_idx,
                        gen, stagnation, STAGNATION_LIMIT,
                        current_mutation_rate,
-                       current_best.fitness.fitness_average,
                        stagnation == 0);
 
         /* Build next generation */

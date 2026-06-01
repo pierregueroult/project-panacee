@@ -37,7 +37,7 @@ void map_draw_loading(const MapView *view, const Town *towns, int town_count,
 void map_draw_state(const MapView *view, const Town *towns, int town_count,
                     const Individual *best, const int *insee_to_idx,
                     int generation, int stagnation, int stagnation_limit,
-                    double mutation_rate, double avg_fitness,
+                    double mutation_rate,
                     int redraw_map);
 
 void map_draw_final(const MapView *view, const Town *towns, int town_count,
