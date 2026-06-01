@@ -325,17 +325,3 @@ button#reset-btn:hover { border-color: var(--accent); color: var(--text); }
 #sidebar::-webkit-scrollbar-track { background: transparent; }
 #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* ===== CLUSTER OVERRIDE ===== */
-.marker-cluster-small,
-.marker-cluster-medium,
-.marker-cluster-large {
-  background-color: rgba(59, 130, 246, 0.25) !important;
-}
-.marker-cluster-small div,
-.marker-cluster-medium div,
-.marker-cluster-large div {
-  background-color: rgba(59, 130, 246, 0.5) !important;
-  color: #fff !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-}

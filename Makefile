@@ -8,6 +8,9 @@ CURDIR := $(shell pwd)
 DOCS_DIR := $(CURDIR)/apps/panacee-documents
 DOCS_REQ := $(DOCS_DIR)/requirement.txt
 
+MAP_DIR  := $(CURDIR)/apps/panacee-map
+MAP_URL  := http://localhost:8080/apps/panacee-map/
+
 GEN_DIR := $(CURDIR)/apps/panacee-genetics
 GEN_BIN := $(GEN_DIR)/panacee
 GEN_BIN_NO_MLV := $(GEN_DIR)/panacee-no-mlv
@@ -43,12 +46,18 @@ run: build
 	@cd $(GEN_DIR) && ./panacee; \
 	echo "==> Starting Python application"; \
 	$(PY) "$(DOCS_DIR)/main.py"; \
+	echo "==> Starting map server"; \
+	cd "$(MAP_DIR)" && java JExpress.java & \
+	sleep 1 && open "$(MAP_URL)"
 
 run-no-mlv: build-no-mlv
 	@echo "==> Starting C binary (no-mlv)"
 	@cd $(GEN_DIR) && ./panacee-no-mlv; \
 	echo "==> Starting Python application"; \
 	$(PY) "$(DOCS_DIR)/main.py"; \
+	echo "==> Starting map server"; \
+	cd "$(MAP_DIR)" && java JExpress.java & \
+	sleep 1 && open "$(MAP_URL)"
 
 clean:
 	@echo "==> Cleaning C build and Python bytecode"
