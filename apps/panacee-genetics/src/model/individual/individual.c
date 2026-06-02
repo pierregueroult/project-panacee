@@ -5,33 +5,31 @@
 #include <string.h>
 
 /* Evaluate an individual using precomputed coverage lists.
-   coverage[j] = array of town indices within RADIUS_HOSPITAL_KM of town j. */
-void evaluate(Individual *ind, const Town *towns, int town_count,
-              const int *insee_to_idx, int **coverage, const int *coverage_size,
-              int total_inhabitants)
+   ctx->coverage[j] = town indices within RADIUS_HOSPITAL_KM of town j. */
+void evaluate(Individual *ind, const Context *ctx)
 {
     int i, k;
     int distant_residents = 0;
     int distant_towns = 0;
     int uhc_count = 0;
-    char *covered = calloc(town_count, 1);
+    char *covered = calloc(ctx->town_count, 1);
 
     for (i = 0; i < ind->size; i++)
     {
-        int j = insee_to_idx[ind->hospitals[i].insee];
+        int j = ctx->insee_to_idx[ind->hospitals[i].insee];
         if (j < 0)
             continue;
-        for (k = 0; k < coverage_size[j]; k++)
-            covered[coverage[j][k]] = 1;
-        if (towns[j].inhabitants_count > THRESHOLD_UHC)
+        for (k = 0; k < ctx->coverage_size[j]; k++)
+            covered[ctx->coverage[j][k]] = 1;
+        if (ctx->towns[j].inhabitants_count > THRESHOLD_UHC)
             uhc_count++;
     }
 
-    for (i = 0; i < town_count; i++)
+    for (i = 0; i < ctx->town_count; i++)
     {
         if (!covered[i])
         {
-            distant_residents += towns[i].inhabitants_count;
+            distant_residents += ctx->towns[i].inhabitants_count;
             distant_towns++;
         }
     }
@@ -42,35 +40,35 @@ void evaluate(Individual *ind, const Town *towns, int town_count,
     ind->fitness.distant_resident_count = distant_residents;
     ind->fitness.distant_town_count = distant_towns;
     ind->fitness.distant_resident_percent =
-        (100.0 * distant_residents / total_inhabitants);
+        (100.0 * distant_residents / ctx->total_inhabitants);
     ind->fitness.distant_town_percent =
-        (100.0 * distant_towns / town_count);
+        (100.0 * distant_towns / ctx->town_count);
 
     ind->fitness.fitness_score = calculate_fitness_score(
-        total_inhabitants, distant_residents, ind->size, uhc_count);
+        ctx->total_inhabitants, distant_residents, ind->size, uhc_count);
 }
 
 /* Random individual: pick k random distinct towns as hospitals.
    k varies in [ratio/2 .. ratio*2] to seed diversity in the population. */
-Individual create_individual_random(const Town *towns, int town_count)
+Individual create_individual_random(const Context *ctx)
 {
     Individual ind;
     int i, k;
 
-    k = (int)(town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
+    k = (int)(ctx->town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
 
-    ind.hospitals = malloc(town_count * sizeof(Hospital));
+    ind.hospitals = malloc(ctx->town_count * sizeof(Hospital));
     ind.size = 0;
     memset(&ind.fitness, 0, sizeof(Fitness));
 
-    char *used = calloc(town_count, 1);
+    char *used = calloc(ctx->town_count, 1);
     while (ind.size < k)
     {
-        i = rand() % town_count;
+        i = rand() % ctx->town_count;
         if (!used[i])
         {
             used[i] = 1;
-            ind.hospitals[ind.size].insee = towns[i].insee;
+            ind.hospitals[ind.size].insee = ctx->towns[i].insee;
             ind.hospitals[ind.size].beds_count = 0;
             ind.size++;
         }
@@ -83,32 +81,31 @@ Individual create_individual_random(const Town *towns, int town_count)
 /* Greedy stochastic individual: at each step, pick randomly from towns whose
    score (uncovered inhabitants they would cover) is >= 90% of the current best.
    Scores are updated lazily — O(town_count * avg_coverage) total. */
-Individual create_individual_greedy(const Town *towns, int town_count,
-                                    int **coverage, const int *coverage_size)
+Individual create_individual_greedy(const Context *ctx)
 {
     Individual ind;
     int i, k, m;
-    int target = (int)(town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
-    char *covered = calloc(town_count, 1);
-    int *score = malloc(town_count * sizeof(int));
+    int target = (int)(ctx->town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
+    char *covered = calloc(ctx->town_count, 1);
+    int *score = malloc(ctx->town_count * sizeof(int));
 
-    ind.hospitals = malloc(town_count * sizeof(Hospital));
+    ind.hospitals = malloc(ctx->town_count * sizeof(Hospital));
     ind.size = 0;
     memset(&ind.fitness, 0, sizeof(Fitness));
 
     /* Initial scores: inhabitants that each town's hospital would cover */
-    for (i = 0; i < town_count; i++)
+    for (i = 0; i < ctx->town_count; i++)
     {
         score[i] = 0;
-        for (k = 0; k < coverage_size[i]; k++)
-            score[i] += towns[coverage[i][k]].inhabitants_count;
+        for (k = 0; k < ctx->coverage_size[i]; k++)
+            score[i] += ctx->towns[ctx->coverage[i][k]].inhabitants_count;
     }
 
     while (ind.size < target)
     {
         /* Find the maximum score */
         int max_score = 0;
-        for (i = 0; i < town_count; i++)
+        for (i = 0; i < ctx->town_count; i++)
             if (score[i] > max_score)
                 max_score = score[i];
         if (max_score == 0)
@@ -117,13 +114,13 @@ Individual create_individual_greedy(const Town *towns, int town_count,
         /* Pick randomly among towns scoring >= 90% of the best (stochastic greedy) */
         int threshold = max_score * 9 / 10;
         int n_candidates = 0;
-        for (i = 0; i < town_count; i++)
+        for (i = 0; i < ctx->town_count; i++)
             if (score[i] >= threshold)
                 n_candidates++;
 
         int pick = rand() % n_candidates;
         int best = -1;
-        for (i = 0; i < town_count; i++)
+        for (i = 0; i < ctx->town_count; i++)
         {
             if (score[i] >= threshold && pick-- == 0)
             {
@@ -132,19 +129,19 @@ Individual create_individual_greedy(const Town *towns, int town_count,
             }
         }
 
-        ind.hospitals[ind.size].insee = towns[best].insee;
+        ind.hospitals[ind.size].insee = ctx->towns[best].insee;
         ind.hospitals[ind.size].beds_count = 0;
         ind.size++;
 
         /* Lazy score update: remove the contribution of newly covered towns */
-        for (k = 0; k < coverage_size[best]; k++)
+        for (k = 0; k < ctx->coverage_size[best]; k++)
         {
-            int t = coverage[best][k];
+            int t = ctx->coverage[best][k];
             if (!covered[t])
             {
                 covered[t] = 1;
-                for (m = 0; m < coverage_size[t]; m++)
-                    score[coverage[t][m]] -= towns[t].inhabitants_count;
+                for (m = 0; m < ctx->coverage_size[t]; m++)
+                    score[ctx->coverage[t][m]] -= ctx->towns[t].inhabitants_count;
             }
         }
     }
@@ -162,7 +159,8 @@ void free_individual(Individual *ind)
 }
 
 /* Create a child by merging two parents' hospital lists and sampling a random subset */
-Individual crossover(const Individual *a, const Individual *b, int town_count)
+Individual crossover(const Individual *a, const Individual *b,
+                     const Context *ctx)
 {
     int i;
     Individual child;
@@ -201,7 +199,7 @@ Individual crossover(const Individual *a, const Individual *b, int town_count)
         pool[j] = tmp;
     }
 
-    child.hospitals = malloc(town_count * sizeof(Hospital));
+    child.hospitals = malloc(ctx->town_count * sizeof(Hospital));
     child.size = target_size;
     for (i = 0; i < target_size; i++)
         child.hospitals[i] = pool[i];
@@ -214,30 +212,29 @@ Individual crossover(const Individual *a, const Individual *b, int town_count)
 
 /* Remove hospitals that cover no town exclusively (all their towns are also
    covered by at least one other hospital). */
-void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
-                      const int *insee_to_idx, int town_count)
+void remove_redundant(Individual *ind, const Context *ctx)
 {
     int h, k;
-    int *cover_count = calloc(town_count, sizeof(int));
+    int *cover_count = calloc(ctx->town_count, sizeof(int));
 
     /* Count how many hospitals cover each town */
     for (h = 0; h < ind->size; h++)
     {
-        int j = insee_to_idx[ind->hospitals[h].insee];
+        int j = ctx->insee_to_idx[ind->hospitals[h].insee];
         if (j < 0)
             continue;
-        for (k = 0; k < coverage_size[j]; k++)
-            cover_count[coverage[j][k]]++;
+        for (k = 0; k < ctx->coverage_size[j]; k++)
+            cover_count[ctx->coverage[j][k]]++;
     }
 
     /* Remove hospitals that don't uniquely cover any town */
     for (h = 0; h < ind->size; h++)
     {
-        int j = insee_to_idx[ind->hospitals[h].insee];
+        int j = ctx->insee_to_idx[ind->hospitals[h].insee];
         int unique = 0;
         if (j >= 0)
-            for (k = 0; k < coverage_size[j]; k++)
-                if (cover_count[coverage[j][k]] == 1)
+            for (k = 0; k < ctx->coverage_size[j]; k++)
+                if (cover_count[ctx->coverage[j][k]] == 1)
                 {
                     unique = 1;
                     break;
@@ -247,8 +244,8 @@ void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
         {
             /* Update cover counts before removing */
             if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    cover_count[coverage[j][k]]--;
+                for (k = 0; k < ctx->coverage_size[j]; k++)
+                    cover_count[ctx->coverage[j][k]]--;
             ind->hospitals[h--] = ind->hospitals[--ind->size];
         }
     }
@@ -256,9 +253,7 @@ void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
 }
 
 /* Random variation for an individual */
-void mutate(Individual *ind, const Town *towns, int town_count,
-            double mutation_rate, int **coverage, const int *coverage_size,
-            const int *insee_to_idx)
+void mutate(Individual *ind, const Context *ctx, double mutation_rate)
 {
     int op, idx, new_idx, i, k;
 
@@ -270,22 +265,22 @@ void mutate(Individual *ind, const Town *towns, int town_count,
     if (op == 0)
     {
         /* Smart add: place a hospital in the town that maximises newly covered inhabitants */
-        char *covered = calloc(town_count, 1);
+        char *covered = calloc(ctx->town_count, 1);
         for (i = 0; i < ind->size; i++)
         {
-            int j = insee_to_idx[ind->hospitals[i].insee];
+            int j = ctx->insee_to_idx[ind->hospitals[i].insee];
             if (j >= 0)
-                for (k = 0; k < coverage_size[j]; k++)
-                    covered[coverage[j][k]] = 1;
+                for (k = 0; k < ctx->coverage_size[j]; k++)
+                    covered[ctx->coverage[j][k]] = 1;
         }
         int best = -1;
         int best_gain = 0;
-        for (i = 0; i < town_count; i++)
+        for (i = 0; i < ctx->town_count; i++)
         {
             int gain = 0;
-            for (k = 0; k < coverage_size[i]; k++)
-                if (!covered[coverage[i][k]])
-                    gain += towns[coverage[i][k]].inhabitants_count;
+            for (k = 0; k < ctx->coverage_size[i]; k++)
+                if (!covered[ctx->coverage[i][k]])
+                    gain += ctx->towns[ctx->coverage[i][k]].inhabitants_count;
             if (gain > best_gain)
             {
                 best_gain = gain;
@@ -294,7 +289,7 @@ void mutate(Individual *ind, const Town *towns, int town_count,
         }
         if (best >= 0)
         {
-            ind->hospitals[ind->size].insee = towns[best].insee;
+            ind->hospitals[ind->size].insee = ctx->towns[best].insee;
             ind->hospitals[ind->size].beds_count = 0;
             ind->size++;
         }
@@ -310,18 +305,18 @@ void mutate(Individual *ind, const Town *towns, int town_count,
     {
         /* Move a hospital to a random town */
         idx = rand() % ind->size;
-        new_idx = rand() % town_count;
+        new_idx = rand() % ctx->town_count;
 
         /* If the destination already has a hospital, remove the current one instead */
         for (i = 0; i < ind->size; i++)
         {
-            if (i != idx && ind->hospitals[i].insee == towns[new_idx].insee)
+            if (i != idx && ind->hospitals[i].insee == ctx->towns[new_idx].insee)
             {
                 ind->hospitals[idx] = ind->hospitals[--ind->size];
                 return;
             }
         }
-        ind->hospitals[idx].insee = towns[new_idx].insee;
+        ind->hospitals[idx].insee = ctx->towns[new_idx].insee;
         ind->hospitals[idx].beds_count = 0;
     }
 }
@@ -329,23 +324,21 @@ void mutate(Individual *ind, const Town *towns, int town_count,
 /* Compute beds_count for each hospital in the result.
    Each covered town is assigned to its nearest hospital.
    beds_count = floor(BEDS_PER_INHABITANT / 1000 * assigned_inhabitants).*/
-void compute_beds(Individual *ind, const Town *towns, int town_count,
-                  const int *insee_to_idx, int **coverage,
-                  const int *coverage_size)
+void compute_beds(Individual *ind, const Context *ctx)
 {
     int i, h;
     int *inhabitants_per_hospital = calloc(ind->size, sizeof(int));
-    int *nearest_hospital = malloc(town_count * sizeof(int));
+    int *nearest_hospital = malloc(ctx->town_count * sizeof(int));
 
     nearest_hospital_per_town(ind->hospitals, ind->size,
-                              towns, town_count,
-                              insee_to_idx, coverage, coverage_size,
+                              ctx->towns, ctx->town_count,
+                              ctx->insee_to_idx, ctx->coverage, ctx->coverage_size,
                               nearest_hospital, NULL);
 
-    for (i = 0; i < town_count; i++)
+    for (i = 0; i < ctx->town_count; i++)
         if (nearest_hospital[i] >= 0)
             inhabitants_per_hospital[nearest_hospital[i]] +=
-                towns[i].inhabitants_count;
+                ctx->towns[i].inhabitants_count;
 
     for (h = 0; h < ind->size; h++)
         ind->hospitals[h].beds_count =
@@ -354,4 +347,3 @@ void compute_beds(Individual *ind, const Town *towns, int town_count,
     free(inhabitants_per_hospital);
     free(nearest_hospital);
 }
-

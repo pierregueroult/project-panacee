@@ -4,8 +4,7 @@
 
 /* Initialize population: 80% greedy individuals for a strong start,
    20% random for diversity. */
-Population init_population(const Town *towns, int town_count, int **coverage,
-                           const int *coverage_size) {
+Population init_population(const Context *ctx) {
   int i;
   Population pop;
   int greedy_count = POPULATION_SIZE * 4 / 5;
@@ -14,10 +13,9 @@ Population init_population(const Town *towns, int town_count, int **coverage,
   pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
 
   for (i = 0; i < greedy_count; i++)
-    pop.individuals[i] =
-        create_individual_greedy(towns, town_count, coverage, coverage_size);
+    pop.individuals[i] = create_individual_greedy(ctx);
   for (i = greedy_count; i < POPULATION_SIZE; i++)
-    pop.individuals[i] = create_individual_random(towns, town_count);
+    pop.individuals[i] = create_individual_random(ctx);
 
   return pop;
 }
@@ -56,14 +54,11 @@ Individual best_individual(const Population *pop) {
 }
 
 /* Evaluate all individuals in a population */
-void evaluate_population(Population *pop, const Town *towns, int town_count,
-                         const int *insee_to_idx, int **coverage,
-                         const int *coverage_size, int total_inhabitants) {
+void evaluate_population(Population *pop, const Context *ctx) {
   int i;
   double sum = 0.0;
   for (i = 0; i < pop->size; i++) {
-    evaluate(&pop->individuals[i], towns, town_count, insee_to_idx, coverage,
-             coverage_size, total_inhabitants);
+    evaluate(&pop->individuals[i], ctx);
     sum += pop->individuals[i].fitness.fitness_score;
   }
 

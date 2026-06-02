@@ -1,6 +1,7 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H
 
+#include "../context.h"
 #include "../fitness/fitness.h"
 #include "../hospital/hospital.h"
 #include "../town/town.h"
@@ -12,21 +13,14 @@ typedef struct
     Fitness fitness;
 } Individual;
 
-Individual create_individual_random(const Town *towns, int town_count);
-Individual create_individual_greedy(const Town *towns, int town_count,
-                                    int **coverage, const int *coverage_size);
+Individual create_individual_random(const Context *ctx);
+Individual create_individual_greedy(const Context *ctx);
 void free_individual(Individual *ind);
-Individual crossover(const Individual *a, const Individual *b, int town_count);
-void remove_redundant(Individual *ind, int **coverage, const int *coverage_size,
-                      const int *insee_to_idx, int town_count);
-void mutate(Individual *ind, const Town *towns, int town_count,
-            double mutation_rate, int **coverage, const int *coverage_size,
-            const int *insee_to_idx);
-void compute_beds(Individual *ind, const Town *towns, int town_count,
-                  const int *insee_to_idx, int **coverage,
-                  const int *coverage_size);
-void evaluate(Individual *ind, const Town *towns, int town_count,
-              const int *insee_to_idx, int **coverage,
-              const int *coverage_size, int total_inhabitants);
+Individual crossover(const Individual *a, const Individual *b,
+                     const Context *ctx);
+void remove_redundant(Individual *ind, const Context *ctx);
+void mutate(Individual *ind, const Context *ctx, double mutation_rate);
+void compute_beds(Individual *ind, const Context *ctx);
+void evaluate(Individual *ind, const Context *ctx);
 
 #endif

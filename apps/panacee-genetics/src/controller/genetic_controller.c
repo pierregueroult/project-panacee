@@ -1,6 +1,7 @@
 #include "genetic_controller.h"
 
 #include "../model/config.h"
+#include "../model/context.h"
 #include "../model/genetic/genetic.h"
 #include "../model/individual/individual.h"
 #include "../model/population/population.h"
@@ -47,6 +48,7 @@ Individual run_genetic(const Town *towns, int town_count)
     int covered_inhabitants;
     char *covered_overlay;
     MapView view;
+    Context ctx;
 
     init_seed();
 
@@ -66,12 +68,19 @@ Individual run_genetic(const Town *towns, int town_count)
             console_dataset_mismatch(data_total, TOTAL_INHABITANTS);
     }
 
+    /* Bundle the problem environment once; every operator reads it from here. */
+    ctx.towns = towns;
+    ctx.town_count = town_count;
+    ctx.insee_to_idx = insee_to_idx;
+    ctx.coverage = coverage;
+    ctx.coverage_size = coverage_size;
+    ctx.total_inhabitants = total_inhabitants;
+
     map_draw_loading(&view, towns, town_count, "Initialisation de la population...");
-    pop = init_population(towns, town_count, coverage, coverage_size);
+    pop = init_population(&ctx);
 
     map_draw_loading(&view, towns, town_count, "Evaluation de la generation initiale...");
-    evaluate_population(&pop, towns, town_count, insee_to_idx, coverage,
-                        coverage_size, total_inhabitants);
+    evaluate_population(&pop, &ctx);
 
     for (gen = 0; gen < MAX_GENERATIONS; gen++)
     {
@@ -136,17 +145,14 @@ Individual run_genetic(const Town *towns, int town_count)
         {
             Individual p1 = tournament_select(&pop);
             Individual p2 = tournament_select(&pop);
-            next_pop.individuals[i] = crossover(&p1, &p2, town_count);
-            mutate(&next_pop.individuals[i], towns, town_count,
-                   current_mutation_rate, coverage, coverage_size, insee_to_idx);
-            remove_redundant(&next_pop.individuals[i], coverage, coverage_size,
-                             insee_to_idx, town_count);
+            next_pop.individuals[i] = crossover(&p1, &p2, &ctx);
+            mutate(&next_pop.individuals[i], &ctx, current_mutation_rate);
+            remove_redundant(&next_pop.individuals[i], &ctx);
         }
 
         free_population(&pop);
         pop = next_pop;
-        evaluate_population(&pop, towns, town_count, insee_to_idx,
-                            coverage, coverage_size, total_inhabitants);
+        evaluate_population(&pop, &ctx);
     }
 
     /* Copy the best solution before freeing the population */
@@ -160,13 +166,12 @@ Individual run_genetic(const Town *towns, int town_count)
     free_population(&pop);
 
     console_local_search_start();
-    local_search(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
+    local_search(&result, &ctx);
     console_local_search_done();
 
-    evaluate(&result, towns, town_count, insee_to_idx, coverage,
-             coverage_size, total_inhabitants);
+    evaluate(&result, &ctx);
 
-    compute_beds(&result, towns, town_count, insee_to_idx, coverage, coverage_size);
+    compute_beds(&result, &ctx);
 
     total_beds = 0;
     covered_inhabitants = total_inhabitants - result.fitness.distant_resident_count;
@@ -182,8 +187,7 @@ Individual run_genetic(const Town *towns, int town_count)
                             coverage_size, "../../data/output/towns_status.csv");
 
     covered_overlay = calloc(town_count, 1);
-    compute_covered(covered_overlay, &result, town_count,
-                    insee_to_idx, coverage, coverage_size);
+    compute_covered(covered_overlay, &result, &ctx);
     map_draw_final(&view, towns, town_count, &result, insee_to_idx,
                    covered_overlay, total_beds);
     free(covered_overlay);
