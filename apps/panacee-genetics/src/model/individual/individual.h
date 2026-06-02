@@ -15,6 +15,7 @@ typedef struct
 
 Individual create_individual_random(const Context *ctx);
 Individual create_individual_greedy(const Context *ctx);
+Individual clone_individual(const Individual *src, const Context *ctx);
 void free_individual(Individual *ind);
 Individual crossover(const Individual *a, const Individual *b,
                      const Context *ctx);

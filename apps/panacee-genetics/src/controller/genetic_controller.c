@@ -12,7 +12,6 @@
 #include "../view/map/map.h"
 
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 static void init_seed(void)
@@ -30,6 +29,13 @@ static void init_seed(void)
         console_seed("time", seed);
     }
     srand(seed);
+}
+
+/* Grow the mutation rate by one escalation step, capped at MUTATION_RATE_MAX. */
+static double adapt_mutation_rate(double rate)
+{
+    double grown = rate * MUTATION_GROWTH;
+    return grown < MUTATION_RATE_MAX ? grown : MUTATION_RATE_MAX;
 }
 
 /* Open the window and build the read-only problem environment:
@@ -86,11 +92,7 @@ static Population reproduce(const Context *ctx, const Population *pop,
     /* Elitism: carry the best individual unchanged into the next generation */
     {
         Individual elite = best_individual(pop);
-        next.individuals[0].hospitals = malloc(ctx->town_count * sizeof(Hospital));
-        next.individuals[0].size = elite.size;
-        memcpy(next.individuals[0].hospitals, elite.hospitals,
-               elite.size * sizeof(Hospital));
-        next.individuals[0].fitness = elite.fitness;
+        next.individuals[0] = clone_individual(&elite, ctx);
     }
 
     for (i = 1; i < POPULATION_SIZE; i++)
@@ -148,9 +150,10 @@ static Individual evolve(const Context *ctx, MapView *view)
             stagnation++;
 
             /* Progressively increase mutation rate to escape local optima */
-            if (stagnation % 10 == 0 && mutation_rate < 0.4)
+            if (stagnation % STAGNATION_MUTATION_STEP == 0
+                && mutation_rate < MUTATION_RATE_MAX)
             {
-                mutation_rate = mutation_rate * 1.3 < 0.4 ? mutation_rate * 1.3 : 0.4;
+                mutation_rate = adapt_mutation_rate(mutation_rate);
                 console_stagnation(stagnation, mutation_rate);
             }
         }
@@ -177,10 +180,7 @@ static Individual evolve(const Context *ctx, MapView *view)
     /* Copy the best solution before freeing the population */
     {
         Individual b = best_individual(&pop);
-        best.hospitals = malloc(ctx->town_count * sizeof(Hospital));
-        best.size = b.size;
-        best.fitness = b.fitness;
-        memcpy(best.hospitals, b.hospitals, b.size * sizeof(Hospital));
+        best = clone_individual(&b, ctx);
     }
     free_population(&pop);
 

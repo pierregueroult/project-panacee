@@ -151,6 +151,18 @@ Individual create_individual_greedy(const Context *ctx)
     return ind;
 }
 
+/* Deep-copy an individual into a fresh buffer sized for ctx->town_count
+   hospitals, leaving room for local search / mutation to add more. */
+Individual clone_individual(const Individual *src, const Context *ctx)
+{
+    Individual copy;
+    copy.hospitals = malloc(ctx->town_count * sizeof(Hospital));
+    copy.size = src->size;
+    copy.fitness = src->fitness;
+    memcpy(copy.hospitals, src->hospitals, src->size * sizeof(Hospital));
+    return copy;
+}
+
 void free_individual(Individual *ind)
 {
     free(ind->hospitals);

@@ -14,6 +14,9 @@
 #define POPULATION_SIZE 50       /* number of individuals in the population     */
 #define TOURNAMENT_K 3           /* ~6% of pop: low pressure, good diversity    */
 #define MUTATION_RATE 0.95       /* mutation probability per individual         */
+#define MUTATION_RATE_MAX 0.40   /* cap when escalating on stagnation           */
+#define MUTATION_GROWTH 1.3      /* multiplier applied at each escalation step   */
+#define STAGNATION_MUTATION_STEP 10 /* escalate every N stagnating generations  */
 #define MAX_GENERATIONS 200000
 #define STAGNATION_LIMIT 200
 #define PROGRESS_INTERVAL 25
