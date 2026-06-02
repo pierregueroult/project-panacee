@@ -6,7 +6,7 @@
 typedef struct
 {
     Individual *individuals;
-    int         size;
+    int size;
 } Population;
 
 Population init_population(const Context *ctx);

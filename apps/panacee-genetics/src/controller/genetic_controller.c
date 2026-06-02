@@ -61,7 +61,9 @@ static Context setup(const Town *towns, int town_count, MapView *view)
 
     data_total = inhabitant_count(towns, town_count);
     if (data_total != TOTAL_INHABITANTS)
+    {
         console_dataset_mismatch(data_total, TOTAL_INHABITANTS);
+    }
 
     return ctx;
 }
@@ -72,7 +74,9 @@ static void teardown(const Context *ctx, MapView *view)
     int i;
     map_close(view);
     for (i = 0; i < ctx->town_count; i++)
+    {
         free(ctx->coverage[i]);
+    }
     free(ctx->coverage);
     free((void *)ctx->coverage_size);
     free((void *)ctx->insee_to_idx);
@@ -80,8 +84,7 @@ static void teardown(const Context *ctx, MapView *view)
 
 /* Produce the next generation: keep the best individual unchanged (elitism),
    then fill the rest with children of tournament-selected parents. */
-static Population reproduce(const Context *ctx, const Population *pop,
-                            double mutation_rate)
+static Population reproduce(const Context *ctx, const Population *pop, double mutation_rate)
 {
     int i;
     Population next;
@@ -118,12 +121,10 @@ static Individual evolve(const Context *ctx, MapView *view)
     Population pop;
     Individual best;
 
-    map_draw_loading(view, ctx->towns, ctx->town_count,
-                     "Initialisation de la population...");
+    map_draw_loading(view, ctx->towns, ctx->town_count, "Initialisation de la population...");
     pop = init_population(ctx);
 
-    map_draw_loading(view, ctx->towns, ctx->town_count,
-                     "Evaluation de la generation initiale...");
+    map_draw_loading(view, ctx->towns, ctx->town_count, "Evaluation de la generation initiale...");
     evaluate_population(&pop, ctx);
 
     for (gen = 0; gen < MAX_GENERATIONS; gen++)
@@ -133,11 +134,11 @@ static Individual evolve(const Context *ctx, MapView *view)
         int improved = best_score > prev_best;
 
         if (improved || gen % PROGRESS_INTERVAL == 0)
-            console_generation(gen, best_score,
-                               current_best.fitness.hospital_count,
-                               current_best.fitness.uhc_count,
+        {
+            console_generation(gen, best_score, current_best.fitness.hospital_count, current_best.fitness.uhc_count,
                                current_best.fitness.distant_resident_count,
                                current_best.fitness.distant_resident_percent);
+        }
 
         if (improved)
         {
@@ -150,8 +151,7 @@ static Individual evolve(const Context *ctx, MapView *view)
             stagnation++;
 
             /* Progressively increase mutation rate to escape local optima */
-            if (stagnation % STAGNATION_MUTATION_STEP == 0
-                && mutation_rate < MUTATION_RATE_MAX)
+            if (stagnation % STAGNATION_MUTATION_STEP == 0 && mutation_rate < MUTATION_RATE_MAX)
             {
                 mutation_rate = adapt_mutation_rate(mutation_rate);
                 console_stagnation(stagnation, mutation_rate);
@@ -164,10 +164,8 @@ static Individual evolve(const Context *ctx, MapView *view)
             break;
         }
 
-        map_draw_state(view, ctx->towns, ctx->town_count,
-                       &current_best, ctx->insee_to_idx,
-                       gen, stagnation, STAGNATION_LIMIT,
-                       mutation_rate, stagnation == 0);
+        map_draw_state(view, ctx->towns, ctx->town_count, &current_best, ctx->insee_to_idx, gen, stagnation,
+                       STAGNATION_LIMIT, mutation_rate, stagnation == 0);
 
         {
             Population next = reproduce(ctx, &pop, mutation_rate);
@@ -203,25 +201,22 @@ static void finalize(const Context *ctx, Individual *result, MapView *view)
     evaluate(result, ctx);
     compute_beds(result, ctx);
 
-    covered_inhabitants =
-        ctx->total_inhabitants - result->fitness.distant_resident_count;
+    covered_inhabitants = ctx->total_inhabitants - result->fitness.distant_resident_count;
     for (i = 0; i < result->size; i++)
+    {
         total_beds += result->hospitals[i].beds_count;
+    }
 
-    console_final_result(result->size, total_beds, covered_inhabitants,
-                         result->fitness.fitness_score);
+    console_final_result(result->size, total_beds, covered_inhabitants, result->fitness.fitness_score);
 
-    export_result_csv(result, ctx->towns, ctx->insee_to_idx,
-                      "../../data/output/hospitals.csv");
+    export_result_csv(result, ctx->towns, ctx->insee_to_idx, "../../data/output/hospitals.csv");
     export_fitness_csv(&result->fitness, "../../data/output/fitness.csv");
-    export_towns_status_csv(result, ctx->towns, ctx->town_count,
-                            ctx->insee_to_idx, ctx->coverage, ctx->coverage_size,
+    export_towns_status_csv(result, ctx->towns, ctx->town_count, ctx->insee_to_idx, ctx->coverage, ctx->coverage_size,
                             "../../data/output/towns_status.csv");
 
     covered_overlay = calloc(ctx->town_count, 1);
     compute_covered(covered_overlay, result, ctx);
-    map_draw_final(view, ctx->towns, ctx->town_count, result, ctx->insee_to_idx,
-                   covered_overlay, total_beds);
+    map_draw_final(view, ctx->towns, ctx->town_count, result, ctx->insee_to_idx, covered_overlay, total_beds);
     free(covered_overlay);
 }
 

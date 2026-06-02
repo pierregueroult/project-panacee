@@ -2,13 +2,12 @@ CC = cc
 CFLAGS = -Wall -ansi -g
 LDFLAGS =
 
-# Linux (pkg-config standard) :
+# Override if clang-format is not on PATH, e.g. on macOS with brew's LLVM:
+#   make format CLANG_FORMAT=$(brew --prefix llvm)/bin/clang-format
+CLANG_FORMAT ?= clang-format
+
 MLV_CFLAGS = $(shell pkg-config --cflags MLV)
 MLV_LIBS = $(shell pkg-config --libs MLV)
-# macOS (brew + sdl12-compat) :
-# PKG_CONFIG_PATH := $(HOME)/.local/mlv-deps/lib/pkgconfig:$(shell brew --prefix)/lib/pkgconfig:$(shell brew --prefix)/opt/sdl12-compat/lib/pkgconfig
-# MLV_CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags MLV)
-# MLV_LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs MLV)
 
 NAME    = panacee
 SRC_DIR = src
@@ -29,6 +28,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 run: $(NAME)
 	./$(NAME)
 
+format:
+	$(CLANG_FORMAT) -i $(shell find $(SRC_DIR) -type f \( -name "*.c" -o -name "*.h" \))
+
 clean:
 	rm -rf $(OBJ_DIR)
 
@@ -37,4 +39,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all run clean fclean re
+.PHONY: all run format clean fclean re

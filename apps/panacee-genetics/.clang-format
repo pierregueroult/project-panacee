@@ -1,0 +1,17 @@
+# Code style for panacee-genetics (C, Allman braces).
+# Apply with `make format`. Editors with clang-format support read this file
+# automatically (format-on-save).
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+PointerAlignment: Right
+InsertBraces: true
+SortIncludes: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None

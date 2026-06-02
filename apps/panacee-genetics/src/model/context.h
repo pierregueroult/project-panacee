@@ -9,12 +9,12 @@
    (parser, build_insee_to_idx, precompute_coverage) and frees them. */
 typedef struct Context
 {
-    const Town *towns;            /* the dataset of towns                    */
-    int         town_count;       /* number of towns                         */
-    const int  *insee_to_idx;     /* INSEE code -> town index, -1 if absent  */
-    int       **coverage;         /* coverage[j] = towns within reach of j   */
-    const int  *coverage_size;    /* coverage_size[j] = length of coverage[j]*/
-    int         total_inhabitants;/* reference population total              */
+    const Town *towns;        /* the dataset of towns                    */
+    int town_count;           /* number of towns                         */
+    const int *insee_to_idx;  /* INSEE code -> town index, -1 if absent  */
+    int **coverage;           /* coverage[j] = towns within reach of j   */
+    const int *coverage_size; /* coverage_size[j] = length of coverage[j]*/
+    int total_inhabitants;    /* reference population total              */
 } Context;
 
 #endif

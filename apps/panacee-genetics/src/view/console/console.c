@@ -20,24 +20,19 @@ void console_coverage_done(void)
 
 void console_dataset_mismatch(int data_total, int spec_total)
 {
-    fprintf(stderr,
-            "Warning: dataset total (%d) differs from spec total (%d)\n",
-            data_total, spec_total);
+    fprintf(stderr, "Warning: dataset total (%d) differs from spec total (%d)\n", data_total, spec_total);
 }
 
-void console_generation(int gen, double best_score, int hospital_count,
-                        int uhc_count, int distant_count,
+void console_generation(int gen, double best_score, int hospital_count, int uhc_count, int distant_count,
                         double distant_percent)
 {
-    printf("Gen %4d | fitness: %.0f | hop: %d | CHRU: %d | desert: %d (%.1f%%)\n",
-           gen, best_score, hospital_count, uhc_count,
-           distant_count, distant_percent);
+    printf("Gen %4d | fitness: %.0f | hop: %d | CHRU: %d | desert: %d (%.1f%%)\n", gen, best_score, hospital_count,
+           uhc_count, distant_count, distant_percent);
 }
 
 void console_stagnation(int stagnation, double mutation_rate)
 {
-    printf("Stagnation at gen %d -> mutation_rate = %.2f\n",
-           stagnation, mutation_rate);
+    printf("Stagnation at gen %d -> mutation_rate = %.2f\n", stagnation, mutation_rate);
 }
 
 void console_stagnation_stop(int stagnation_limit)
@@ -55,8 +50,7 @@ void console_local_search_done(void)
     printf("Local search done.\n");
 }
 
-void console_final_result(int hospital_count, int total_beds,
-                          int covered_inhabitants, double fitness_score)
+void console_final_result(int hospital_count, int total_beds, int covered_inhabitants, double fitness_score)
 {
     printf("\n=== Final result: %d hospitals ===\n", hospital_count);
     printf("Total beds: %d\n", total_beds);
@@ -64,7 +58,8 @@ void console_final_result(int hospital_count, int total_beds,
     printf("Fitness Score : %f\n", fitness_score);
 
     if (covered_inhabitants > 0)
+    {
         printf("Beds per 1000 covered inhabitants: %.2f (target: %.2f)\n",
-               (double)total_beds / (covered_inhabitants / 1000.0),
-               BEDS_PER_INHABITANT);
+               (double)total_beds / (covered_inhabitants / 1000.0), BEDS_PER_INHABITANT);
+    }
 }

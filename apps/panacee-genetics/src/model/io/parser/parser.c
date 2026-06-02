@@ -4,13 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INSEE_COL           0
-#define NAME_COL            1
+#define INSEE_COL 0
+#define NAME_COL 1
 #define DEPARTMENT_CODE_COL 4
 #define DEPARTMENT_NAME_COL 5
-#define INHABITANTS_COL     7
-#define LATITUDE_COL        8
-#define LONGITUDE_COL       9
+#define INHABITANTS_COL 7
+#define LATITUDE_COL 8
+#define LONGITUDE_COL 9
 
 #define LINE_BUFFER 1024
 #define DEFAULT_CSV_PATH "../../data/input/communes-france-metrople-2025.csv"
@@ -18,9 +18,15 @@
 static void copy_field(char *dst, const char *src, size_t cap)
 {
     size_t n;
-    if (cap == 0) return;
+    if (cap == 0)
+    {
+        return;
+    }
     n = strlen(src);
-    if (n >= cap) n = cap - 1;
+    if (n >= cap)
+    {
+        n = cap - 1;
+    }
     memcpy(dst, src, n);
     dst[n] = '\0';
 }
@@ -39,13 +45,17 @@ static int count_lines(FILE *fptr)
             started = 1;
         }
         if (len > 0 && buffer[len - 1] == '\n')
+        {
             started = 0;
+        }
         else if (feof(fptr))
+        {
             started = 0;
+        }
         else
-            fprintf(stderr,
-                    "Warning: CSV row exceeds %d bytes (will be truncated)\n",
-                    LINE_BUFFER - 1);
+        {
+            fprintf(stderr, "Warning: CSV row exceeds %d bytes (will be truncated)\n", LINE_BUFFER - 1);
+        }
     }
     rewind(fptr);
     return lines;
@@ -55,10 +65,14 @@ static const char *resolve_path(const char *path)
 {
     const char *env;
     if (path && *path)
+    {
         return path;
+    }
     env = getenv("PANACEE_CSV_PATH");
     if (env && *env)
+    {
         return env;
+    }
     return DEFAULT_CSV_PATH;
 }
 
@@ -109,12 +123,10 @@ Town *parse(const char *path, int *count)
                 copy_field(town.name, value, sizeof town.name);
                 break;
             case DEPARTMENT_CODE_COL:
-                copy_field(town.department_code, value,
-                           sizeof town.department_code);
+                copy_field(town.department_code, value, sizeof town.department_code);
                 break;
             case DEPARTMENT_NAME_COL:
-                copy_field(town.department_name, value,
-                           sizeof town.department_name);
+                copy_field(town.department_name, value, sizeof town.department_name);
                 break;
             case INHABITANTS_COL:
                 town.inhabitants_count = atoi(value);
