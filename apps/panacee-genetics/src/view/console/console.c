@@ -1,3 +1,8 @@
+/**
+ * @file console.c
+ * @brief Implementation of the console view (see console.h).
+ */
+
 #include "console.h"
 #include "../../model/config.h"
 

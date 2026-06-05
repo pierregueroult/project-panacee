@@ -1,3 +1,8 @@
+/**
+ * @file map.c
+ * @brief Implementation of the graphical map view (see map.h).
+ */
+
 #include "map.h"
 #include "../../model/config.h"
 #include "../color/color.h"
@@ -49,16 +54,19 @@ BoundingBox get_bounding_box(const Town *towns, int count)
     return box;
 }
 
+/** @brief Convert a longitude to a window x coordinate. */
 static int project_x(const MapView *v, double longitude)
 {
     return v->padding + (int)((longitude - v->box.min_lon) * v->ratio * v->cos_lat);
 }
 
+/** @brief Convert a latitude to a window y coordinate (y axis is flipped). */
 static int project_y(const MapView *v, double latitude)
 {
     return v->height - v->padding - (int)((latitude - v->box.min_lat) * v->ratio);
 }
 
+/** @brief Draw every town as a small orange dot. */
 static void draw_country(const MapView *v, const Town *towns, int town_count)
 {
     int j;
@@ -69,6 +77,7 @@ static void draw_country(const MapView *v, const Town *towns, int town_count)
     }
 }
 
+/** @brief Draw the hospitals of an individual: blue for CHRU, green otherwise. */
 static void draw_hospitals(const MapView *v, const Individual *ind, const Town *towns, const int *insee_to_idx)
 {
     int j, idx;
@@ -85,6 +94,7 @@ static void draw_hospitals(const MapView *v, const Individual *ind, const Town *
     }
 }
 
+/** @brief Draw uncovered towns (medical deserts) as red dots. */
 static void draw_deserts(const MapView *v, const Town *towns, int town_count, const char *covered)
 {
     int j;
@@ -98,12 +108,14 @@ static void draw_deserts(const MapView *v, const Town *towns, int town_count, co
     }
 }
 
+/** @brief Erase the sidebar area and redraw its separator line. */
 static void clear_sidebar(const MapView *v)
 {
     MLV_draw_filled_rectangle(v->sidebar_x + 1, 0, v->sidebar_w, v->height, MLV_COLOR_BLACK);
     MLV_draw_line(v->sidebar_x, 0, v->sidebar_x, v->height, MLV_COLOR_WHITE);
 }
 
+/** @brief X position where sidebar text starts. */
 static int sidebar_text_x(const MapView *v)
 {
     return v->sidebar_x + v->padding;
