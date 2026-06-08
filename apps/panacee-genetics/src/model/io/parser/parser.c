@@ -1,3 +1,8 @@
+/**
+ * @file parser.c
+ * @brief Implementation of the towns CSV parser (see parser.h).
+ */
+
 #include "parser.h"
 
 #include <stdio.h>
@@ -15,6 +20,7 @@
 #define LINE_BUFFER 1024
 #define DEFAULT_CSV_PATH "../../data/input/communes-france-metrople-2025.csv"
 
+/** @brief Copy a CSV field into a fixed-size buffer, truncating if needed. */
 static void copy_field(char *dst, const char *src, size_t cap)
 {
     size_t n;
@@ -31,6 +37,7 @@ static void copy_field(char *dst, const char *src, size_t cap)
     dst[n] = '\0';
 }
 
+/** @brief Count the lines of a file, then rewind it. Warns on overlong rows. */
 static int count_lines(FILE *fptr)
 {
     int lines = 0;
@@ -61,6 +68,7 @@ static int count_lines(FILE *fptr)
     return lines;
 }
 
+/** @brief Resolve the CSV path: argument, then PANACEE_CSV_PATH, then default. */
 static const char *resolve_path(const char *path)
 {
     const char *env;

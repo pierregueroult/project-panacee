@@ -1,3 +1,8 @@
+/**
+ * @file individual.c
+ * @brief Implementation of the individual and its genetic operators (see individual.h).
+ */
+
 #include "individual.h"
 #include "../config.h"
 #include <stdlib.h>

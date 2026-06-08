@@ -1,3 +1,8 @@
+/**
+ * @file town.c
+ * @brief Implementation of the geographic helpers (see town.h).
+ */
+
 #include "town.h"
 #include "../config.h"
 #include <math.h>

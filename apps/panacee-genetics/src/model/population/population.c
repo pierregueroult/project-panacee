@@ -1,3 +1,8 @@
+/**
+ * @file population.c
+ * @brief Implementation of the population operators (see population.h).
+ */
+
 #include "population.h"
 #include "../config.h"
 #include <stdlib.h>

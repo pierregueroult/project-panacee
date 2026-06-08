@@ -1,3 +1,8 @@
+/**
+ * @file fitness.c
+ * @brief Implementation of the fitness scoring function (see fitness.h).
+ */
+
 #include "fitness.h"
 #include "../config.h"
 #include <stdlib.h>

@@ -1,3 +1,8 @@
+/**
+ * @file exporter.c
+ * @brief Implementation of the CSV exporters (see exporter.h).
+ */
+
 #include "exporter.h"
 #include "../../config.h"
 
@@ -7,6 +12,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+/** @brief Create every missing directory on the path leading to a file. */
 static void ensure_parent_dir(const char *path)
 {
     char buffer[1024];
@@ -51,6 +57,7 @@ static void ensure_parent_dir(const char *path)
     }
 }
 
+/** @brief Open a file for writing, creating parent directories; NULL on failure. */
 static FILE *open_for_write(const char *path)
 {
     FILE *f;

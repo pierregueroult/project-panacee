@@ -1,3 +1,8 @@
+/**
+ * @file genetic.c
+ * @brief Implementation of the genetic algorithm helpers (see genetic.h).
+ */
+
 #include "genetic.h"
 #include "../config.h"
 
