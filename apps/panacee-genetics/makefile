@@ -2,9 +2,11 @@ CC = cc
 CFLAGS = -Wall -ansi -g
 LDFLAGS =
 
-# Override if clang-format is not on PATH, e.g. on macOS with brew's LLVM:
-#   make format CLANG_FORMAT=$(brew --prefix llvm)/bin/clang-format
+# --- MACOS FORMAT
+# CLANG_FORMAT=/opt/homebrew/opt/llvm/bin/clang-format
+# --- LINUX FORMAT
 CLANG_FORMAT ?= clang-format
+DOXYGEN ?= doxygen
 
 MLV_CFLAGS = $(shell pkg-config --cflags MLV)
 MLV_LIBS = $(shell pkg-config --libs MLV)
@@ -31,12 +33,16 @@ run: $(NAME)
 format:
 	$(CLANG_FORMAT) -i $(shell find $(SRC_DIR) -type f \( -name "*.c" -o -name "*.h" \))
 
+docs:
+	$(DOXYGEN) Doxyfile
+
 clean:
 	rm -rf $(OBJ_DIR)
+	rm -rf bin/docs
 
 fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
 
-.PHONY: all run format clean fclean re
+.PHONY: all run format docs clean fclean re
