@@ -1,3 +1,8 @@
+/**
+ * @file genetic_controller.c
+ * @brief Implementation of the genetic optimisation controller (see genetic_controller.h).
+ */
+
 #include "genetic_controller.h"
 
 #include "../model/config.h"
@@ -14,6 +19,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+/** @brief Seed the RNG from PANACEE_SEED if set, otherwise from the clock. */
 static void init_seed(void)
 {
     const char *env_seed = getenv("PANACEE_SEED");
@@ -31,15 +37,17 @@ static void init_seed(void)
     srand(seed);
 }
 
-/* Grow the mutation rate by one escalation step, capped at MUTATION_RATE_MAX. */
+/** @brief Grow the mutation rate by one escalation step, capped at MUTATION_RATE_MAX. */
 static double adapt_mutation_rate(double rate)
 {
     double grown = rate * MUTATION_GROWTH;
     return grown < MUTATION_RATE_MAX ? grown : MUTATION_RATE_MAX;
 }
 
-/* Open the window and build the read-only problem environment:
-   the INSEE->index table and the precomputed coverage lists. */
+/**
+ * @brief Open the window and build the read-only problem environment:
+ * the INSEE->index table and the precomputed coverage lists.
+ */
 static Context setup(const Town *towns, int town_count, MapView *view)
 {
     Context ctx;
@@ -68,7 +76,7 @@ static Context setup(const Town *towns, int town_count, MapView *view)
     return ctx;
 }
 
-/* Release everything setup() allocated and close the window. */
+/** @brief Release everything setup() allocated and close the window. */
 static void teardown(const Context *ctx, MapView *view)
 {
     int i;
@@ -82,8 +90,10 @@ static void teardown(const Context *ctx, MapView *view)
     free((void *)ctx->insee_to_idx);
 }
 
-/* Produce the next generation: keep the best individual unchanged (elitism),
-   then fill the rest with children of tournament-selected parents. */
+/**
+ * @brief Produce the next generation: keep the best individual unchanged
+ * (elitism), then fill the rest with children of tournament-selected parents.
+ */
 static Population reproduce(const Context *ctx, const Population *pop, double mutation_rate)
 {
     int i;
@@ -92,11 +102,8 @@ static Population reproduce(const Context *ctx, const Population *pop, double mu
     next.size = POPULATION_SIZE;
     next.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
 
-    /* Elitism: carry the best individual unchanged into the next generation */
-    {
-        Individual elite = best_individual(pop);
-        next.individuals[0] = clone_individual(&elite, ctx);
-    }
+    Individual elite = best_individual(pop);
+    next.individuals[0] = clone_individual(&elite, ctx);
 
     for (i = 1; i < POPULATION_SIZE; i++)
     {
@@ -110,8 +117,10 @@ static Population reproduce(const Context *ctx, const Population *pop, double mu
     return next;
 }
 
-/* Run the generation loop until convergence or stagnation, returning a copy
-   of the best individual found (the caller owns result.hospitals). */
+/**
+ * @brief Run the generation loop until convergence or stagnation, returning a
+ * copy of the best individual found (the caller owns result.hospitals).
+ */
 static Individual evolve(const Context *ctx, MapView *view)
 {
     int gen;
@@ -185,8 +194,10 @@ static Individual evolve(const Context *ctx, MapView *view)
     return best;
 }
 
-/* Polish the best individual (local search), compute bed counts, then report
-   it to every view: console summary, CSV files and the final map. */
+/**
+ * @brief Polish the best individual (local search), compute bed counts, then
+ * report it to every view: console summary, CSV files and the final map.
+ */
 static void finalize(const Context *ctx, Individual *result, MapView *view)
 {
     int i;
