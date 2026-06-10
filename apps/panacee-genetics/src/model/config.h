@@ -16,8 +16,8 @@
 #define INIT_HOSPITAL_RATIO 0.05    /**< ~5% of towns have a hospital at init. */
 #define POPULATION_SIZE 50          /**< Number of individuals in the population. */
 #define TOURNAMENT_K 3              /**< ~6% of pop: low pressure, good diversity. */
-#define MUTATION_RATE 0.95          /**< Mutation probability per individual. */
-#define MUTATION_RATE_MAX 0.40      /**< Cap when escalating on stagnation. */
+#define MUTATION_RATE 0.40          /**< Base mutation probability per individual. */
+#define MUTATION_RATE_MAX 0.95      /**< Cap when escalating on stagnation. */
 #define MUTATION_GROWTH 1.3         /**< Multiplier applied at each escalation step. */
 #define STAGNATION_MUTATION_STEP 10 /**< Escalate every N stagnating generations. */
 #define MAX_GENERATIONS 200000      /**< Hard cap on the number of generations. */
