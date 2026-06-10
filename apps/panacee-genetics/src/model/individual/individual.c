@@ -5,6 +5,7 @@
 
 #include "individual.h"
 #include "../config.h"
+#include "../../util/memory.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +18,7 @@ void evaluate(Individual *ind, const Context *ctx)
     int distant_residents = 0;
     int distant_towns = 0;
     int uhc_count = 0;
-    char *covered = calloc(ctx->town_count, 1);
+    char *covered = xcalloc(ctx->town_count, 1);
 
     for (i = 0; i < ind->size; i++)
     {
@@ -66,11 +67,11 @@ Individual create_individual_random(const Context *ctx)
 
     k = (int)(ctx->town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
 
-    ind.hospitals = malloc(ctx->town_count * sizeof(Hospital));
+    ind.hospitals = xmalloc(ctx->town_count * sizeof(Hospital));
     ind.size = 0;
     memset(&ind.fitness, 0, sizeof(Fitness));
 
-    char *used = calloc(ctx->town_count, 1);
+    char *used = xcalloc(ctx->town_count, 1);
     while (ind.size < k)
     {
         i = rand() % ctx->town_count;
@@ -95,10 +96,10 @@ Individual create_individual_greedy(const Context *ctx)
     Individual ind;
     int i, k, m;
     int target = (int)(ctx->town_count * INIT_HOSPITAL_RATIO * (0.5 + (double)rand() / RAND_MAX * 1.5));
-    char *covered = calloc(ctx->town_count, 1);
-    int *score = malloc(ctx->town_count * sizeof(int));
+    char *covered = xcalloc(ctx->town_count, 1);
+    int *score = xmalloc(ctx->town_count * sizeof(int));
 
-    ind.hospitals = malloc(ctx->town_count * sizeof(Hospital));
+    ind.hospitals = xmalloc(ctx->town_count * sizeof(Hospital));
     ind.size = 0;
     memset(&ind.fitness, 0, sizeof(Fitness));
 
@@ -179,7 +180,7 @@ Individual create_individual_greedy(const Context *ctx)
 Individual clone_individual(const Individual *src, const Context *ctx)
 {
     Individual copy;
-    copy.hospitals = malloc(ctx->town_count * sizeof(Hospital));
+    copy.hospitals = xmalloc(ctx->town_count * sizeof(Hospital));
     copy.size = src->size;
     copy.fitness = src->fitness;
     memcpy(copy.hospitals, src->hospitals, src->size * sizeof(Hospital));
@@ -199,8 +200,8 @@ Individual crossover(const Individual *a, const Individual *b, const Context *ct
     int i;
     Individual child;
     /* INSEE codes are at most 5 digits (max 99999) */
-    char *present = calloc(INSEE_MAX, 1);
-    Hospital *pool = malloc((a->size + b->size) * sizeof(Hospital));
+    char *present = xcalloc(INSEE_MAX, 1);
+    Hospital *pool = xmalloc((a->size + b->size) * sizeof(Hospital));
     int pool_n = 0;
     int target_size;
 
@@ -239,7 +240,7 @@ Individual crossover(const Individual *a, const Individual *b, const Context *ct
         pool[j] = tmp;
     }
 
-    child.hospitals = malloc(ctx->town_count * sizeof(Hospital));
+    child.hospitals = xmalloc(ctx->town_count * sizeof(Hospital));
     child.size = target_size;
     for (i = 0; i < target_size; i++)
     {
@@ -257,7 +258,7 @@ Individual crossover(const Individual *a, const Individual *b, const Context *ct
 void remove_redundant(Individual *ind, const Context *ctx)
 {
     int h, k;
-    int *cover_count = calloc(ctx->town_count, sizeof(int));
+    int *cover_count = xcalloc(ctx->town_count, sizeof(int));
 
     /* Count how many hospitals cover each town */
     for (h = 0; h < ind->size; h++)
@@ -321,7 +322,7 @@ void mutate(Individual *ind, const Context *ctx, double mutation_rate)
     if (op == 0)
     {
         /* Smart add: place a hospital in the town that maximises newly covered inhabitants */
-        char *covered = calloc(ctx->town_count, 1);
+        char *covered = xcalloc(ctx->town_count, 1);
         for (i = 0; i < ind->size; i++)
         {
             int j = ctx->insee_to_idx[ind->hospitals[i].insee];
@@ -391,8 +392,8 @@ void mutate(Individual *ind, const Context *ctx, double mutation_rate)
 void compute_beds(Individual *ind, const Context *ctx)
 {
     int i, h;
-    int *inhabitants_per_hospital = calloc(ind->size, sizeof(int));
-    int *nearest_hospital = malloc(ctx->town_count * sizeof(int));
+    int *inhabitants_per_hospital = xcalloc(ind->size, sizeof(int));
+    int *nearest_hospital = xmalloc(ctx->town_count * sizeof(int));
 
     nearest_hospital_per_town(ind->hospitals, ind->size, ctx->towns, ctx->town_count, ctx->insee_to_idx, ctx->coverage,
                               ctx->coverage_size, nearest_hospital, NULL);

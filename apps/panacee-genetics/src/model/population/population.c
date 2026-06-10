@@ -5,6 +5,7 @@
 
 #include "population.h"
 #include "../config.h"
+#include "../../util/memory.h"
 #include <stdlib.h>
 
 /* Initialize population: 80% greedy individuals for a strong start,
@@ -16,7 +17,7 @@ Population init_population(const Context *ctx)
     int greedy_count = POPULATION_SIZE * 4 / 5;
 
     pop.size = POPULATION_SIZE;
-    pop.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
+    pop.individuals = xmalloc(POPULATION_SIZE * sizeof(Individual));
 
     for (i = 0; i < greedy_count; i++)
     {

@@ -11,10 +11,9 @@
 /**
  * @brief Parse the towns CSV file.
  *
- * If path is NULL or empty, falls back to the PANACEE_CSV_PATH environment
- * variable, then to the default dataset path.
+ * If path is NULL or empty, falls back to the default dataset path.
  *
- * @param path CSV file path, or NULL to use the fallbacks.
+ * @param path CSV file path, or NULL to use the default.
  * @param count Output: number of towns parsed (0 on failure).
  * @return Malloc'ed array of towns, or NULL on failure. Caller frees it.
  */

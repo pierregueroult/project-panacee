@@ -16,6 +16,9 @@
 #include "../view/console/console.h"
 #include "../view/map/map.h"
 
+#include "../util/memory.h"
+
+#include <float.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -100,7 +103,7 @@ static Population reproduce(const Context *ctx, const Population *pop, double mu
     Population next;
 
     next.size = POPULATION_SIZE;
-    next.individuals = malloc(POPULATION_SIZE * sizeof(Individual));
+    next.individuals = xmalloc(POPULATION_SIZE * sizeof(Individual));
 
     Individual elite = best_individual(pop);
     next.individuals[0] = clone_individual(&elite, ctx);
@@ -125,7 +128,7 @@ static Individual evolve(const Context *ctx, MapView *view)
 {
     int gen;
     int stagnation = 0;
-    double prev_best = -1;
+    double prev_best = -DBL_MAX;
     double mutation_rate = MUTATION_RATE;
     Population pop;
     Individual best;
@@ -225,7 +228,7 @@ static void finalize(const Context *ctx, Individual *result, MapView *view)
     export_towns_status_csv(result, ctx->towns, ctx->town_count, ctx->insee_to_idx, ctx->coverage, ctx->coverage_size,
                             "../../data/output/towns_status.csv");
 
-    covered_overlay = calloc(ctx->town_count, 1);
+    covered_overlay = xcalloc(ctx->town_count, 1);
     compute_covered(covered_overlay, result, ctx);
     map_draw_final(view, ctx->towns, ctx->town_count, result, ctx->insee_to_idx, covered_overlay, total_beds);
     free(covered_overlay);

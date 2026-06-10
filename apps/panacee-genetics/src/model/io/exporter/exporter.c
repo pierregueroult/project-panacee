@@ -5,6 +5,7 @@
 
 #include "exporter.h"
 #include "../../config.h"
+#include "../../../util/memory.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -116,7 +117,7 @@ void export_towns_status_csv(const Individual *result, const Town *towns, int to
 {
     int i;
     FILE *f;
-    int *nearest_idx = malloc(town_count * sizeof(int));
+    int *nearest_idx = xmalloc(town_count * sizeof(int));
 
     nearest_hospital_per_town(result->hospitals, result->size, towns, town_count, insee_to_idx, coverage, coverage_size,
                               nearest_idx, NULL);

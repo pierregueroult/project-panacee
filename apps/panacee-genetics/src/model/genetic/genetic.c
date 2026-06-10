@@ -5,6 +5,7 @@
 
 #include "genetic.h"
 #include "../config.h"
+#include "../../util/memory.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@
 
 int *build_insee_to_idx(const Town *towns, int town_count)
 {
-    int *table = malloc(INSEE_MAX * sizeof(int));
+    int *table = xmalloc(INSEE_MAX * sizeof(int));
     int i;
 
     for (i = 0; i < INSEE_MAX; i++)
@@ -56,7 +57,7 @@ void local_search(Individual *result, const Context *ctx)
 
     while (improved)
     {
-        int *cover_count = calloc(ctx->town_count, sizeof(int));
+        int *cover_count = xcalloc(ctx->town_count, sizeof(int));
 
         improved = 0;
         for (i = 0; i < result->size; i++)

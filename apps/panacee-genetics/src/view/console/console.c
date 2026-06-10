@@ -37,7 +37,7 @@ void console_generation(int gen, double best_score, int hospital_count, int uhc_
 
 void console_stagnation(int stagnation, double mutation_rate)
 {
-    printf("Stagnation at gen %d -> mutation_rate = %.2f\n", stagnation, mutation_rate);
+    printf("Stagnation for %d generations -> mutation_rate = %.2f\n", stagnation, mutation_rate);
 }
 
 void console_stagnation_stop(int stagnation_limit)

@@ -4,6 +4,7 @@
  */
 
 #include "parser.h"
+#include "../../../util/memory.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,18 +69,12 @@ static int count_lines(FILE *fptr)
     return lines;
 }
 
-/** @brief Resolve the CSV path: argument, then PANACEE_CSV_PATH, then default. */
+/** @brief Resolve the CSV path: argument, then default. */
 static const char *resolve_path(const char *path)
 {
-    const char *env;
     if (path && *path)
     {
         return path;
-    }
-    env = getenv("PANACEE_CSV_PATH");
-    if (env && *env)
-    {
-        return env;
     }
     return DEFAULT_CSV_PATH;
 }
@@ -110,7 +105,7 @@ Town *parse(const char *path, int *count)
         return NULL;
     }
 
-    towns = malloc(total * sizeof(Town));
+    towns = xmalloc(total * sizeof(Town));
 
     while (fgets(buffer, LINE_BUFFER, fptr))
     {

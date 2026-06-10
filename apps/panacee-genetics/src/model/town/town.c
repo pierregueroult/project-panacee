@@ -5,6 +5,7 @@
 
 #include "town.h"
 #include "../config.h"
+#include "../../util/memory.h"
 #include <math.h>
 
 #ifndef M_PI
@@ -39,10 +40,10 @@ void precompute_coverage(const Town *towns, int town_count, int ***coverage, int
 {
     int i, j, cnt;
     double dlat_max = RADIUS_HOSPITAL_KM / 111.0;
-    int *tmp = malloc(town_count * sizeof(int));
+    int *tmp = xmalloc(town_count * sizeof(int));
 
-    *coverage = malloc(town_count * sizeof(int *));
-    *coverage_size = malloc(town_count * sizeof(int));
+    *coverage = xmalloc(town_count * sizeof(int *));
+    *coverage_size = xmalloc(town_count * sizeof(int));
 
     for (i = 0; i < town_count; i++)
     {
@@ -61,7 +62,7 @@ void precompute_coverage(const Town *towns, int town_count, int ***coverage, int
         }
         if (cnt > 0)
         {
-            (*coverage)[i] = malloc(cnt * sizeof(int));
+            (*coverage)[i] = xmalloc(cnt * sizeof(int));
             memcpy((*coverage)[i], tmp, cnt * sizeof(int));
         }
         else
@@ -87,7 +88,7 @@ void nearest_hospital_per_town(const Hospital *hospitals, int hospital_count, co
     }
     else
     {
-        dist = malloc(town_count * sizeof(double));
+        dist = xmalloc(town_count * sizeof(double));
         dist_owned = 1;
     }
 
