@@ -32,17 +32,6 @@ typedef struct
 Individual create_individual_random(const Context *ctx);
 
 /**
- * @brief Create an individual with a stochastic greedy heuristic.
- *
- * At each step, pick randomly among towns whose score (uncovered inhabitants
- * they would cover) is >= 90% of the current best.
- *
- * @param ctx Problem environment.
- * @return New individual; caller frees it with free_individual().
- */
-Individual create_individual_greedy(const Context *ctx);
-
-/**
  * @brief Deep-copy an individual into a fresh full-size buffer.
  * @param src Individual to copy.
  * @param ctx Problem environment (used for the buffer size).

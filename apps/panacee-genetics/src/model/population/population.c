@@ -8,22 +8,17 @@
 #include "../../util/memory.h"
 #include <stdlib.h>
 
-/* Initialize population: 80% greedy individuals for a strong start,
-   20% random for diversity. */
+/* Initialize population with random individuals only, so the genetic
+   operators drive all the improvement. */
 Population init_population(const Context *ctx)
 {
     int i;
     Population pop;
-    int greedy_count = POPULATION_SIZE * 4 / 5;
 
     pop.size = POPULATION_SIZE;
     pop.individuals = xmalloc(POPULATION_SIZE * sizeof(Individual));
 
-    for (i = 0; i < greedy_count; i++)
-    {
-        pop.individuals[i] = create_individual_greedy(ctx);
-    }
-    for (i = greedy_count; i < POPULATION_SIZE; i++)
+    for (i = 0; i < POPULATION_SIZE; i++)
     {
         pop.individuals[i] = create_individual_random(ctx);
     }

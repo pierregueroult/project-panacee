@@ -18,8 +18,7 @@ typedef struct
 } Population;
 
 /**
- * @brief Create the initial population: 80% greedy individuals for a strong
- * start, 20% random for diversity.
+ * @brief Create the initial population of random individuals.
  *
  * @param ctx Problem environment.
  * @return New population of POPULATION_SIZE individuals; caller frees it
