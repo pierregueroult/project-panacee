@@ -1,14 +1,15 @@
 CC = cc
-CFLAGS = -Wall -ansi -g -DUSE_MLV
+CFLAGS = -Wall -ansi -g
 LDFLAGS =
 
-# Linux (pkg-config standard) :
+# --- MACOS FORMAT
+# CLANG_FORMAT=/opt/homebrew/opt/llvm/bin/clang-format
+# --- LINUX FORMAT
+CLANG_FORMAT ?= clang-format
+DOXYGEN ?= doxygen
+
 MLV_CFLAGS = $(shell pkg-config --cflags MLV)
 MLV_LIBS = $(shell pkg-config --libs MLV)
-# macOS (brew + sdl12-compat) :
-# PKG_CONFIG_PATH := $(HOME)/.local/mlv-deps/lib/pkgconfig:$(shell brew --prefix)/lib/pkgconfig:$(shell brew --prefix)/opt/sdl12-compat/lib/pkgconfig
-# MLV_CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags MLV)
-# MLV_LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs MLV)
 
 NAME    = panacee
 SRC_DIR = src
@@ -29,12 +30,19 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 run: $(NAME)
 	./$(NAME)
 
+format:
+	$(CLANG_FORMAT) -i $(shell find $(SRC_DIR) -type f \( -name "*.c" -o -name "*.h" \))
+
+docs:
+	$(DOXYGEN) Doxyfile
+
 clean:
 	rm -rf $(OBJ_DIR)
+	rm -rf bin/docs
 
 fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
 
-.PHONY: all run clean fclean re
+.PHONY: all run format docs clean fclean re

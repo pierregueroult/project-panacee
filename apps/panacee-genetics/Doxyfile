@@ -1,0 +1,37 @@
+# Doxygen configuration for Panacée Genetics.
+# Generate with: make docs (output in bin/docs/html/index.html)
+
+PROJECT_NAME           = "Panacee Genetics"
+PROJECT_BRIEF          = "Hospital placement via a genetic algorithm"
+OUTPUT_DIRECTORY       = bin/docs
+
+# --- Input ------------------------------------------------------------------
+INPUT                  = src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.c *.h
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# --- Extraction -------------------------------------------------------------
+# Document everything, including the static helpers we annotated.
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+# --- Comment parsing --------------------------------------------------------
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+
+# --- Output -----------------------------------------------------------------
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+SOURCE_BROWSER         = YES
+
+# --- Diagrams ---------------------------------------------------------------
+# Call/caller graphs only if Graphviz (dot) is available; harmless otherwise.
+HAVE_DOT               = NO
+
+# --- Warnings ---------------------------------------------------------------
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
