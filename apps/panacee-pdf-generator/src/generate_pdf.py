@@ -505,18 +505,13 @@ def build_department_elements(
     elements.append(HRule(page_width, thickness=2, color=COLOR_DARK))
     elements.append(Spacer(1, 0.4 * cm))
 
-    covered_towns = set(department_hospitals["insee"].unique())
-    all_towns = set(department_towns["insee"].unique())
-    desert_towns = all_towns - covered_towns
-    desert_town_count = len(desert_towns)
+    # A town is "éloignée" when no hospital covers it (assigned_hospital_insee is NA)
+    desert_mask = department_towns["assigned_hospital_insee"].isna()
+    desert_town_count = int(desert_mask.sum())
 
     if "inhabitants" in department_towns.columns:
-        desert_inhabitants = (
-            department_towns[department_towns["insee"].isin(desert_towns)][
-                "inhabitants"
-            ]
-            .fillna(0)
-            .sum()
+        desert_inhabitants = int(
+            department_towns.loc[desert_mask, "inhabitants"].fillna(0).sum()
         )
     else:
         desert_inhabitants = 0

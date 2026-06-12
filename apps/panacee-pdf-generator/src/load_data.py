@@ -80,7 +80,10 @@ def load_towns_status() -> pd.DataFrame:
     df["insee"] = df["insee"].astype(str).str.zfill(5)
     df["department_code"] = df["department_code"].astype(str)
     df["inhabitants"] = pd.to_numeric(df["inhabitants"], errors="coerce").fillna(0).astype(int)
-    df["assigned_hospital_insee"] = df["assigned_hospital_insee"].astype(str).str.zfill(5)
+    assigned = pd.to_numeric(df["assigned_hospital_insee"], errors="coerce")
+    df["assigned_hospital_insee"] = assigned.where(assigned >= 0).map(
+        lambda v: f"{int(v):05d}", na_action="ignore"
+    )
 
     return df
 
@@ -120,7 +123,7 @@ def department_summary(hospitals: pd.DataFrame, towns_status: pd.DataFrame) -> p
         * 1000
     ).fillna(0).round(2)
 
-    return summary.sort_values("department_code")
+    return summary.sort_values("department_code", key=lambda s: s.str.zfill(3))
 
 
 def get_department_data(

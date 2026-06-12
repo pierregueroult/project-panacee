@@ -8,8 +8,11 @@ LDFLAGS =
 CLANG_FORMAT ?= clang-format
 DOXYGEN ?= doxygen
 
-MLV_CFLAGS = $(shell pkg-config --cflags MLV)
-MLV_LIBS = $(shell pkg-config --libs MLV)
+ifeq ($(shell uname -s),Darwin)
+PKG_CONFIG_ENV := PKG_CONFIG_PATH=$(HOME)/.local/mlv-deps/lib/pkgconfig:$(shell brew --prefix)/lib/pkgconfig:$(shell brew --prefix)/opt/sdl12-compat/lib/pkgconfig
+endif
+MLV_CFLAGS = $(shell $(PKG_CONFIG_ENV) pkg-config --cflags MLV)
+MLV_LIBS   = $(shell $(PKG_CONFIG_ENV) pkg-config --libs MLV)
 
 NAME    = panacee
 SRC_DIR = src
