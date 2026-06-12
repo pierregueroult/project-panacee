@@ -9,8 +9,7 @@ DOCS_DIR := $(CURDIR)/apps/panacee-pdf-generator
 VENV_PY := $(DOCS_DIR)/.venv/bin/python
 
 MAP_DIR  := $(CURDIR)/apps/panacee-map
-MAP_URL  := http://localhost:8080/apps/panacee-map/
-
+MAP_URL  := http://localhost:8080/apps/panacee-map/index.html
 GEN_DIR := $(CURDIR)/apps/panacee-genetics
 GEN_BIN := $(GEN_DIR)/panacee
 
@@ -53,7 +52,7 @@ run: init build
 	@echo "==> Starting Python application"
 	@$(VENV_PY) "$(DOCS_DIR)/src/main.py"
 	@echo "==> Starting map server"
-	@cd "$(MAP_DIR)" && java JExpress.java &
+	@cd "$(MAP_DIR)" && java JExpress.java
 	@sleep 3
 	@open "$(MAP_URL)"
 clean:
