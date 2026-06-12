@@ -1,49 +1,56 @@
 # Panacée
 
-A dual-component application for optimizing healthcare facility placement across metropolitan France using genetic algorithms.
+Repository: https://github.com/pierregueroult/project-panacee
 
 ## Project Structure
 
 ```
-projet-panacée/
+project-panacee/
 ├── apps/
-│   ├── panacee-genetics/           # C genetic algorithm engine
+│   ├── panacee-genetics/           # C genetic algorithm engine (MVC)
 │   │   ├── src/
-│   │   │   ├── domain/             # Core business entities (DDD domain layer)
+│   │   │   ├── model/              # Domain logic and data
 │   │   │   │   ├── town/           # Town entity (INSEE code, coordinates, population)
 │   │   │   │   ├── hospital/       # Hospital entity (INSEE code, bed count)
-│   │   │   │   └── fitness/        # Fitness value object (scoring metrics)
-│   │   │   ├── infrastructure/     # Data access (DDD infrastructure layer)
-│   │   │   │   └── parser/         # CSV parser for French municipality data
-│   │   │   ├── presentation/       # Rendering and UI (DDD presentation layer)
-│   │   │   │   ├── map/            # Geographic visualization and bounding box
-│   │   │   │   └── color/          # Brand color palette (MLV colors)
+│   │   │   │   ├── individual/     # A candidate solution (set of hospital towns)
+│   │   │   │   ├── population/     # Population of individuals
+│   │   │   │   ├── fitness/        # Fitness value object (scoring metrics)
+│   │   │   │   ├── genetic/        # Evolution operators (selection, crossover, mutation)
+│   │   │   │   ├── io/             # CSV parser and result exporters
+│   │   │   │   ├── config.h        # Algorithm tuning parameters and domain constants
+│   │   │   │   └── context.h       # Problem environment bundle
+│   │   │   ├── view/               # Rendering (MLV map, console output, colors)
+│   │   │   ├── controller/         # Orchestration of the genetic run
+│   │   │   ├── util/               # Checked allocation helpers
 │   │   │   └── main.c
-│   │   ├── bin/                    # Compiled object files (.o)
+│   │   ├── Doxyfile                # Doxygen documentation config
 │   │   ├── makefile                # C build and run targets
 │   │   └── panacee                 # Output binary
-│   └── panacee-documents/          # Python analysis/documentation layer
-│       ├── main.py
-│       └── requirement.txt
+│   ├── panacee-pdf-generator/      # Python app: per-department PDF report of results
+│   └── panacee-map/                # Interactive web map (Java HTTP server + JS/Leaflet front)
+├── data/
+│   └── output/                     # CSV results and generated PDF
 ├── docs/
 │   ├── instructions/               # Project instructions and recommendations (PDF)
-│   └── project/                    # Build documentation
+│   └── project/                    # Build and algorithm documentation
 └── makefile                        # Top-level build orchestrator
 ```
 
 ### Architecture (panacee-genetics)
 
-Le code source suit une organisation inspirée du **Domain Driven Design** :
+Le code source suit une organisation **MVC** :
 
-- **`domain/`** — entités et objets-valeur métier, sans dépendance vers l'infrastructure ou la présentation
-- **`infrastructure/`** — accès aux données externes (lecture CSV, I/O fichiers)
-- **`presentation/`** — rendu graphique via la bibliothèque MLV (fenêtre, carte, couleurs)
+- **`model/`**: entités métier, opérateurs génétiques, lecture/écriture des données ; aucune dépendance vers l'affichage
+- **`view/`**: rendu graphique via la bibliothèque MLV (carte de France) et sortie console
+- **`controller/`**: pilote l'exécution : initialisation, boucle d'évolution, recherche locale finale, export
 
 ## Components
 
-**panacee-genetics** — C application implementing a genetic algorithm to evaluate optimal hospital distribution. It works with French municipality data (INSEE codes, geographic coordinates, population counts) and scores candidates using fitness metrics: hospital coverage, UHC (urgent care) access, and travel distances.
+**panacee-genetics**: C application implementing a genetic algorithm to evaluate optimal hospital distribution. It works with French municipality data (INSEE codes, geographic coordinates, population counts) and scores candidates using the fitness function given in the project instructions: population coverage, hospital cost penalty, and CHRU bonus.
 
-**panacee-documents** — Python application for analysis and documentation of results produced by the genetics engine.
+**panacee-pdf-generator**: Python application that turns the CSV results into a per-department PDF report.
+
+**panacee-map**: interactive web map (Java HTTP server, Leaflet front end) to explore the resulting hospital placement.
 
 ## Usage (from project root)
 
@@ -51,11 +58,17 @@ Le code source suit une organisation inspirée du **Domain Driven Design** :
 make help     # Show available top-level targets
 make init     # Install Python dependencies
 make build    # Compile the C application (apps/panacee-genetics)
-make run      # Build, run C binary, then run Python app
+make run      # Build, run C binary, generate the PDF, then serve the map
 make clean    # Clean C build artifacts
 make fclean   # Full clean (artifacts + binary)
 make re       # Full rebuild (fclean then build)
 ```
+
+## Documentation
+
+- [`docs/project/algorithme-genetique-explique.md`](docs/project/algorithme-genetique-explique.md) — l'algorithme génétique expliqué pas à pas (français)
+- [`docs/project/genetics.md`](docs/project/genetics.md) — technical description of the genetic engine
+- `make docs` in `apps/panacee-genetics/` — generate the Doxygen API documentation
 
 ## References
 
